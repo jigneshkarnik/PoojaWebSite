@@ -1,0 +1,15 @@
+# Node and tooling
+node_modules/
+.DS_Store
+
+# Build outputs
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
