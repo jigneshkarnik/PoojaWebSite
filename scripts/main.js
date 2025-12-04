@@ -8,6 +8,9 @@ async function loadIncludes() {
       const headerResponse = await fetch('header.html');
       const headerHtml = await headerResponse.text();
       headerPlaceholder.innerHTML = headerHtml;
+      
+      // Initialize mobile menu after header is loaded
+      initializeMobileMenu();
     } catch (error) {
       console.error('Error loading header:', error);
     }
@@ -24,6 +27,53 @@ async function loadIncludes() {
       console.error('Error loading footer:', error);
     }
   }
+}
+
+// Initialize mobile menu toggle
+function initializeMobileMenu() {
+  const mobileMenuButton = document.getElementById('mobile-menu-toggle');
+  const mainNav = document.getElementById('main-nav');
+  
+  if (mobileMenuButton && mainNav) {
+    mobileMenuButton.addEventListener('click', () => {
+      mainNav.classList.toggle('active');
+      const isActive = mainNav.classList.contains('active');
+      mobileMenuButton.setAttribute('aria-expanded', isActive);
+      mobileMenuButton.textContent = isActive ? '✕' : '☰';
+    });
+    
+    // Close menu when clicking on a link
+    const navLinks = mainNav.querySelectorAll('a');
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        mainNav.classList.remove('active');
+        mobileMenuButton.setAttribute('aria-expanded', 'false');
+        mobileMenuButton.textContent = '☰';
+      });
+    });
+  }
+  
+  // Set active nav item based on current page
+  setActiveNavItem();
+}
+
+// Set active navigation item based on current page
+function setActiveNavItem() {
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  const navLinks = document.querySelectorAll('.main-nav a');
+  
+  navLinks.forEach(link => {
+    link.classList.remove('nav-active');
+    const linkPage = link.getAttribute('href');
+    
+    // Match current page with link
+    if (linkPage === currentPage || 
+        (currentPage === '' && linkPage === 'index.html') ||
+        (currentPage === 'index.html' && linkPage === 'index.html') ||
+        (currentPage === 'homoeopathy.html' && linkPage === 'homoeopathy.html')) {
+      link.classList.add('nav-active');
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
