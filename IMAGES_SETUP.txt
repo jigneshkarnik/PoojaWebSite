@@ -1,0 +1,62 @@
+================================================================================
+WEBSITE IMAGES SETUP SUMMARY
+================================================================================
+
+IMAGES DOWNLOADED AND STORED:
+✓ banner.jpg (3.6 MB) - Main header banner image
+✓ whatsapp-icon.png (2.3 KB) - WhatsApp contact icon  
+✓ telegram-icon.png (2.3 KB) - Telegram contact icon
+✓ email-icon.png (2.3 KB) - Email contact icon
+
+LOCATION: /images/ folder
+
+================================================================================
+IMAGES REFERENCED IN HTML:
+================================================================================
+
+1. Banner (index.html line ~48):
+   <img src="./images/banner.jpg" alt="Banner" class="banner-image">
+
+2. WhatsApp Icon (index.html line ~67):
+   <img src="./images/whatsapp-icon.png" alt="WhatsApp">
+
+3. Telegram Icon (index.html line ~73):
+   <img src="./images/telegram-icon.png" alt="Telegram">
+
+4. Email Icon (index.html line ~79):
+   <img src="./images/email-icon.png" alt="Email">
+
+================================================================================
+CSS STYLING:
+================================================================================
+
+Banner Image:
+- Full width, responsive height
+- Max height: 500px
+- Object-fit: cover
+
+Contact Icons:
+- Size: 100px x 100px
+- Object-fit: contain
+- Border-radius: 8px
+- Display: block (centered)
+
+================================================================================
+TO VIEW THE WEBSITE:
+================================================================================
+
+1. Start a local server:
+   python3 -m http.server 8000
+   
+2. Open browser:
+   http://localhost:8000
+
+3. You should see:
+   - Navigation header with "Pooja Karnik" brand
+   - Banner image
+   - Credentials section
+   - Online Consultation section with contact icons
+   - Physical Consultation section with map
+   - And more sections below...
+
+================================================================================
