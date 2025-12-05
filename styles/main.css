@@ -776,6 +776,25 @@ footer {
     color: var(--color-green);
 }
 
+/* About Me Page Improvements */
+.aboutme-photo {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(233,30,140,0.12);
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .aboutme-photo {
+    width: 120px;
+    height: 120px;
+    object-position: top center;
+  }
+}
+
 /* Responsiveness */
 @media (max-width: 960px) {
   .credentials-grid {
