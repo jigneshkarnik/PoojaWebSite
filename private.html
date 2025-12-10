@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private Content Access</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    .auth-card { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 800px; margin: 2rem auto; }
+    .auth-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1rem 0; }
+    .auth-actions button { cursor: pointer; }
+    .auth-status { margin-top: 0.5rem; color: var(--color-text); font-weight: 500; }
+    .private-content { margin-top: 1.5rem; display: none; }
+    .private-content.visible { display: block; }
+    .error { color: #b00020; }
+    .success { color: var(--color-green-dark); }
+    .content-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+    .content-item { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 1rem; }
+    .content-item h4 { color: var(--color-pink); margin-bottom: 0.5rem; }
+    .content-item p { color: var(--color-muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+    .content-item .status { font-size: 0.85rem; font-weight: 500; }
+    .content-item .status.allowed { color: var(--color-green-dark); }
+    .content-item .status.denied { color: #b00020; }
+    .content-item a { text-decoration: none; color: var(--color-pink); font-weight: 600; }
+    .loading { color: var(--color-muted); }
+  </style>
+</head>
+<body>
+  <!-- Header placeholder -->
+  <div id="header-placeholder"></div>
+
+  <main class="main-content">
+    <section class="consultation-section">
+      <h1>Private Content</h1>
+      <p class="section-intro">Sign in with Google, Apple, or Facebook. Your access to private content will be determined by your whitelist status.</p>
+
+      <div class="auth-card">
+        <div class="auth-actions">
+          <button class="button" id="google-btn">Sign in with Google</button>
+          <button class="button secondary" id="apple-btn">Sign in with Apple</button>
+          <button class="button outline" id="facebook-btn">Sign in with Facebook</button>
+          <button class="button outline" id="signout-btn" style="display:none;">Sign out</button>
+        </div>
+        <div class="auth-status" id="auth-status">Not signed in.</div>
+
+        <div class="private-content" id="private-content">
+          <h3>Your Private Content</h3>
+          <p>Below are the resources available to you:</p>
+          <div class="content-list" id="content-list">
+            <div class="loading">Loading your content...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer placeholder -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Firebase SDKs (Auth only, no Firestore in browser) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+  <script>
+    // Firebase config with Auth only (no sensitive keys exposed here).
+    // The API key is safe to expose; all sensitive logic happens server-side.
+    const firebaseConfig = {
+      apiKey: "YOUR_FIREBASE_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    const facebookProvider = new firebase.auth.FacebookAuthProvider();
+    const appleProvider = new firebase.auth.OAuthProvider('apple.com');
+
+    const statusEl = document.getElementById('auth-status');
+    const privateEl = document.getElementById('private-content');
+    const contentListEl = document.getElementById('content-list');
+    const signOutBtn = document.getElementById('signout-btn');
+
+    // Cloudflare Worker endpoint URL
+    const WORKER_URL = 'https://YOUR_WORKER_SUBDOMAIN.workers.dev/access';
+
+    const fetchUserContent = async (idToken) => {
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Worker returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data; // { allowed: bool, content: [...], user: {...} }
+      } catch (err) {
+        console.error('Error fetching content from worker:', err);
+        return { allowed: false, content: [], error: err.message };
+      }
+    };
+
+    const renderContent = (data) => {
+      if (!data.allowed) {
+        contentListEl.innerHTML = '<p class="error">You do not have access to private content.</p>';
+        return;
+      }
+
+      if (!data.content || data.content.length === 0) {
+        contentListEl.innerHTML = '<p>No content available to you at this time.</p>';
+        return;
+      }
+
+      contentListEl.innerHTML = data.content.map(item => `
+        <div class="content-item">
+          <h4>${item.title}</h4>
+          <p>${item.description || 'No description'}</p>
+          <div class="status allowed">✓ Available</div>
+          <a href="${item.link}" target="_blank">Access ${item.type}</a>
+        </div>
+      `).join('');
+    };
+
+    const updateUI = (user, data) => {
+      if (!user) {
+        statusEl.textContent = 'Not signed in.';
+        privateEl.classList.remove('visible');
+        signOutBtn.style.display = 'none';
+        return;
+      }
+
+      const name = user.displayName || user.email || 'Signed-in user';
+      statusEl.textContent = `${name}: checking access...`;
+      signOutBtn.style.display = 'inline-flex';
+
+      if (data.allowed) {
+        statusEl.textContent = `${name}: access granted.`;
+        privateEl.classList.add('visible');
+        renderContent(data);
+      } else {
+        statusEl.innerHTML = `${name}: <span class="error">access denied</span>`;
+        privateEl.classList.remove('visible');
+      }
+    };
+
+    const signIn = async (provider) => {
+      try {
+        statusEl.textContent = 'Signing in...';
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+        const idToken = await user.getIdToken();
+        const data = await fetchUserContent(idToken);
+        updateUI(user, data);
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = `<span class="error">Sign-in failed: ${err.message}</span>`;
+        privateEl.classList.remove('visible');
+      }
+    };
+
+    document.getElementById('google-btn').onclick = () => signIn(googleProvider);
+    document.getElementById('facebook-btn').onclick = () => signIn(facebookProvider);
+    document.getElementById('apple-btn').onclick = () => signIn(appleProvider);
+
+    signOutBtn.onclick = () => auth.signOut();
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        statusEl.textContent = 'Not signed in.';
+        privateEl.classList.remove('visible');
+        signOutBtn.style.display = 'none';
+        return;
+      }
+
+      try {
+        const idToken = await user.getIdToken();
+        const data = await fetchUserContent(idToken);
+        updateUI(user, data);
+      } catch (err) {
+        console.error('Error on auth state change:', err);
+        statusEl.innerHTML = `<span class="error">Error loading content.</span>`;
+      }
+    });
+  </script>
+  <script src="scripts/main.js"></script>
+</body>
+</html>

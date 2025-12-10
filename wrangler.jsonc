@@ -1,0 +1,5 @@
+{
+  "name": "private-content-access",
+  "compatibility_date": "2025-12-10",
+  "main": "cloudflare-worker.js"
+}
