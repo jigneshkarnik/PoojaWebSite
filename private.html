@@ -64,11 +64,15 @@
   <script>
     // Firebase config with Auth only (no sensitive keys exposed here).
     // The API key is safe to expose; all sensitive logic happens server-side.
-    const firebaseConfig = {
-      apiKey: "YOUR_FIREBASE_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-    };
+   const firebaseConfig = {
+  apiKey: "AIzaSyBiJTEwXvkEB-TLF_9EuJeGdwmf1rSvS-w",
+  authDomain: "poojawebsite-53749.firebaseapp.com",
+  projectId: "poojawebsite-53749",
+  storageBucket: "poojawebsite-53749.firebasestorage.app",
+  messagingSenderId: "625704523500",
+  appId: "1:625704523500:web:6906560fe64f0db5d777c9",
+  measurementId: "G-VX6PM2DW1S"
+};
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -83,7 +87,7 @@
     const signOutBtn = document.getElementById('signout-btn');
 
     // Cloudflare Worker endpoint URL
-    const WORKER_URL = 'https://YOUR_WORKER_SUBDOMAIN.workers.dev/access';
+    const WORKER_URL = 'https://poojawebsite.jigneshkarnik.workers.dev/';
 
     const fetchUserContent = async (idToken) => {
       try {
