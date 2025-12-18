@@ -284,7 +284,29 @@ export default {
             return new Response(JSON.stringify({ error: 'File not whitelisted for this user' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
           }
 
-          // Fetch the file from the origin (Cloudinary) and stream it back
+          // If an R2 binding is available, try to read the object from R2 directly
+          try {
+            if (env && env.R2_BUCKET && typeof env.R2_BUCKET.get === 'function') {
+              try {
+                const urlObj = new URL(fileUrl);
+                // derive object key from the URL path (strip leading slash)
+                const key = urlObj.pathname.replace(/^\/+/, '');
+                const object = await env.R2_BUCKET.get(key);
+                if (object) {
+                  const contentType = object.httpMetadata?.contentType || 'application/octet-stream';
+                  const headers = new Headers({ 'Content-Type': contentType, 'Access-Control-Allow-Origin': '*' });
+                  return new Response(object.body, { status: 200, headers });
+                }
+                // if object not found in R2, fallthrough to fetch public URL
+              } catch (e) {
+                console.warn('R2 fetch failed, falling back to fetch()', e);
+              }
+            }
+          } catch (e) {
+            console.warn('R2 binding check error', e);
+          }
+
+          // Fetch the file from the origin (public URL) and stream it back
           const fetchResp = await fetch(fileUrl);
           if (!fetchResp.ok) {
             const txt = await fetchResp.text().catch(() => '');
