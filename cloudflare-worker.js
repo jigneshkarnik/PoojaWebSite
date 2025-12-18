@@ -162,7 +162,7 @@ async function getUserWhitelist(projectId, apiKey, email, uid) {
         const access = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
         console.log('getUserWhitelist: docId=', docId, 'allowed=', allowed, 'accessCount=', access.length);
         
-        return { allowed, access };
+        return { allowed, access, raw: data };
       } else {
         const txt = await response.text();
         console.log('getUserWhitelist: non-ok response body:', txt);
@@ -235,21 +235,25 @@ export default {
         });
       }
 
+      // Detect debug mode
+      const reqUrl = new URL(request.url);
+      const debugMode = reqUrl.searchParams.get('debug') === '1' || request.headers.get('x-debug') === '1';
+
       // Get user's whitelist doc
       const whitelist = await getUserWhitelist(projectId, apiKey, email, uid);
 
       if (!whitelist || !whitelist.allowed) {
-        return new Response(
-          JSON.stringify({
-            allowed: false,
-            content: [],
-            user: { email, uid },
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+        const body = {
+          allowed: false,
+          content: [],
+          user: { email, uid },
+        };
+        if (debugMode) body.debug = { tokenPayload: decodedToken, whitelistRaw: whitelist?.raw || null };
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       }
 
       // Filter content based on user's access array
@@ -258,17 +262,16 @@ export default {
         userAccess.includes(item.id)
       );
 
-      return new Response(
-        JSON.stringify({
-          allowed: true,
-          content: allowedContent,
-          user: { email, uid, accessCount: userAccess.length },
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      const successBody = {
+        allowed: true,
+        content: allowedContent,
+        user: { email, uid, accessCount: userAccess.length },
+      };
+      if (debugMode) successBody.debug = { tokenPayload: decodedToken, whitelistRaw: whitelist?.raw || null };
+      return new Response(JSON.stringify(successBody), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     } catch (err) {
       console.error('Worker error:', err);
       return new Response(
