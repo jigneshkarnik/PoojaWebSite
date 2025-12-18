@@ -16,17 +16,60 @@
 /**
  * Verify Firebase ID token using Google's public keys
  */
-// Helper to import X.509 certificate as a public key
-async function certificateToCryptoKey(pem) {
-  // Remove PEM header/footer and line breaks
-  const b64 = pem.replace(/-----BEGIN CERTIFICATE-----/, '')
-                .replace(/-----END CERTIFICATE-----/, '')
-                .replace(/\s+/g, '');
-  const der = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  // Import as X.509 certificate
+
+// Helper: base64url decode
+function base64urlToUint8Array(base64url) {
+  // Pad base64 string
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) base64 += '=';
+  const str = atob(base64);
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; ++i) bytes[i] = str.charCodeAt(i);
+  return bytes;
+}
+
+// Helper: import RSA public key from JWKS n/e
+async function importRsaPublicKey(n, e) {
+  // Build the SPKI DER structure for RSA public key
+  // See RFC 3447, RFC 5280, RFC 7517
+  function toUint8(arr) { return new Uint8Array(arr); }
+  function concat(...arrays) {
+    let total = arrays.reduce((sum, arr) => sum + arr.length, 0);
+    let result = new Uint8Array(total);
+    let offset = 0;
+    for (let arr of arrays) { result.set(arr, offset); offset += arr.length; }
+    return result;
+  }
+  function encodeLength(len) {
+    if (len < 128) return Uint8Array.of(len);
+    const bytes = [];
+    while (len > 0) { bytes.unshift(len & 0xff); len >>= 8; }
+    return Uint8Array.of(0x80 | bytes.length, ...bytes);
+  }
+  function asn1encode(tag, data) {
+    return concat([tag], encodeLength(data.length), data);
+  }
+  function asn1int(bytes) {
+    // Add leading 0 if high bit set
+    if (bytes[0] & 0x80) bytes = concat([0], bytes);
+    return asn1encode(0x02, bytes);
+  }
+  // ASN.1 SEQUENCE of modulus and exponent
+  const modulus = asn1int(base64urlToUint8Array(n));
+  const exponent = asn1int(base64urlToUint8Array(e));
+  const seq = asn1encode(0x30, concat(modulus, exponent));
+  // Wrap in BIT STRING
+  const bitstr = asn1encode(0x03, concat([0], seq));
+  // AlgorithmIdentifier for rsaEncryption
+  const algId = asn1encode(0x30, concat(
+    asn1encode(0x06, Uint8Array.of(0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01)),
+    asn1encode(0x05, new Uint8Array([]))
+  ));
+  // Final SPKI sequence
+  const spki = asn1encode(0x30, concat(algId, bitstr));
   return await crypto.subtle.importKey(
-    'x509',
-    der.buffer,
+    'spki',
+    spki.buffer,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false,
     ['verify']
@@ -39,19 +82,16 @@ async function verifyFirebaseToken(idToken, projectId) {
     const [headerB64] = idToken.split('.');
     const header = JSON.parse(atob(headerB64.replace(/-/g, '+').replace(/_/g, '/')));
 
-    // Fetch Google's public keys
-    const keysResponse = await fetch('https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com');
-    const keys = await keysResponse.json();
 
-    // Get the public key for this token
-    const publicKey = keys[header.kid];
-    if (!publicKey) {
-      throw new Error('Public key not found');
+    // Fetch Google's JWKS public keys
+    const jwksResponse = await fetch('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com');
+    const jwks = await jwksResponse.json();
+    const jwk = jwks.keys.find(k => k.kid === header.kid);
+    if (!jwk) {
+      throw new Error('Public key not found in JWKS');
     }
-
-    // Import the X.509 certificate as a public key
-    const pemKey = publicKey.replace(/\\n/g, '\n');
-    const cryptoKey = await certificateToCryptoKey(pemKey);
+    // Import the public key from n/e
+    const cryptoKey = await importRsaPublicKey(jwk.n, jwk.e);
 
     // Verify the signature
     const [headerPayloadB64, signatureB64] = idToken.split('.').slice(0, 2);
