@@ -173,8 +173,11 @@ async function getUserWhitelist(projectId, apiKey, email, uid, env) {
       if (response.ok) {
         const data = await response.json();
         const allowed = data.fields?.allowed?.booleanValue || false;
-        const access = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
-        const result = { allowed, access, raw: data };
+        // New: read accessBooks, accessArticles, accessVideos arrays
+        const accessBooks = data.fields?.accessBooks?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const accessArticles = data.fields?.accessArticles?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const accessVideos = data.fields?.accessVideos?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const result = { allowed, accessBooks, accessArticles, accessVideos, raw: data };
         // Cache result keyed by emailId and optionally uid
         if (kv) {
           try { await kv.put(emailId, JSON.stringify(result), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
@@ -357,16 +360,25 @@ export default {
         });
       }
 
-      // Filter content based on user's access array
-      const userAccess = whitelist.access || [];
-      const allowedContent = CONTENT_CATALOG.filter((item) =>
-        userAccess.includes(item.id)
-      );
+      // Filter content based on user's access arrays
+      const accessBooks = whitelist.accessBooks || [];
+      const accessArticles = whitelist.accessArticles || [];
+      const accessVideos = whitelist.accessVideos || [];
+
+      // Filter catalog by type and allowed IDs
+      const allowedBooks = CONTENT_CATALOG.filter(item => item.type === 'Book' && accessBooks.includes(item.id));
+      const allowedArticles = CONTENT_CATALOG.filter(item => item.type === 'Article' && accessArticles.includes(item.id));
+      const allowedVideos = CONTENT_CATALOG.filter(item => item.type === 'Video' && accessVideos.includes(item.id));
+
+      const allowedContent = [...allowedBooks, ...allowedArticles, ...allowedVideos];
 
       const successBody = {
         allowed: true,
         content: allowedContent,
-        user: { email, uid, accessCount: userAccess.length },
+        user: { email, uid,
+          accessBooksCount: accessBooks.length,
+          accessArticlesCount: accessArticles.length,
+          accessVideosCount: accessVideos.length },
       };
       if (debugMode) successBody.debug = { tokenPayload: decodedToken, whitelistRaw: whitelist?.raw || null };
       return new Response(JSON.stringify(successBody), {
