@@ -140,19 +140,19 @@
 
         if (books.length > 0) {
           const list = books.map(bookUrl => {
-            const href = String(bookUrl);
-            const label = getLabelFromUrl(href);
-            return `<li><a href="${href}" target="_blank" rel="noopener" data-type="book">${escapeHtml(label)}</a></li>`;
-          }).join('');
+          const href = String(bookUrl);
+          const label = getLabelFromUrl(href);
+          return `<li><a href="${href}" data-proxy="true" data-type="book" rel="noopener">${escapeHtml(label)}</a></li>`;
+        }).join('');
           sections.push(`<section class="content-section"><h3>Books</h3><ul>${list}</ul></section>`);
         }
 
         if (articles.length > 0) {
           const list = articles.map(articleUrl => {
-            const href = String(articleUrl);
-            const label = getLabelFromUrl(href);
-            return `<li><a href="${href}" target="_blank" rel="noopener" data-type="article">${escapeHtml(label)}</a></li>`;
-          }).join('');
+          const href = String(articleUrl);
+          const label = getLabelFromUrl(href);
+          return `<li><a href="${href}" data-proxy="true" data-type="article" rel="noopener">${escapeHtml(label)}</a></li>`;
+        }).join('');
           sections.push(`<section class="content-section"><h3>Articles</h3><ul>${list}</ul></section>`);
         }
 
@@ -160,7 +160,8 @@
           const list = videos.map(videoUrl => {
             const href = String(videoUrl);
             const label = getLabelFromUrl(href);
-            return `<li><a href="${href}" target="_blank" rel="noopener" data-type="video">${escapeHtml(label)}</a></li>`;
+            // For videos, do not proxy YouTube; for direct-hosted mp4s we can proxy if desired
+            return `<li><a href="${href}" data-proxy="${/youtube\.com|youtu\.be/.test(href) ? 'false' : 'true'}" data-type="video" rel="noopener">${escapeHtml(label)}</a></li>`;
           }).join('');
           sections.push(`<section class="content-section"><h3>Videos</h3><ul>${list}</ul></section>`);
         }
@@ -198,15 +199,56 @@
     contentListEl.addEventListener('click', (ev) => {
       const a = ev.target.closest('a');
       if (!a) return;
+      const proxy = a.getAttribute('data-proxy') === 'true';
       const type = a.dataset.type;
+      if (proxy) {
+        ev.preventDefault();
+        // obtain idToken and POST to Worker /files/proxy to stream
+        (async () => {
+          try {
+            const user = auth.currentUser;
+            if (!user) { statusEl.innerHTML = '<span class="error">Please sign in first</span>'; return; }
+            const idToken = await user.getIdToken();
+            const fileUrl = a.getAttribute('href');
+            const resp = await fetch(WORKER_URL + 'files/proxy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ idToken, fileUrl }),
+            });
+            if (!resp.ok) {
+              const err = await resp.json().catch(()=>({error:'unknown'}));
+              console.error('Proxy fetch failed', err);
+              statusEl.innerHTML = `<span class="error">Unable to fetch file: ${err.error||resp.status}</span>`;
+              return;
+            }
+            // For PDFs, open blob in new tab
+            const contentType = resp.headers.get('Content-Type') || '';
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            if (contentType.includes('pdf')) {
+              window.open(blobUrl, '_blank');
+            } else if (type === 'video') {
+              // stream video in modal
+              modalVideo.src = blobUrl;
+              modal.classList.add('visible');
+              modal.setAttribute('aria-hidden', 'false');
+              modalVideo.play().catch(()=>{});
+            } else {
+              // fallback: open blob
+              window.open(blobUrl, '_blank');
+            }
+          } catch (err) {
+            console.error('Proxy error', err);
+            statusEl.innerHTML = `<span class="error">Error fetching file.</span>`;
+          }
+        })();
+        return;
+      }
+      // non-proxied links: handle videos specially
       if (type === 'video') {
         ev.preventDefault();
         const href = a.getAttribute('href');
-        // open YouTube links in new tab
-        if (/youtube\.com|youtu\.be/.test(href)) {
-          window.open(href, '_blank', 'noopener');
-          return;
-        }
+        if (/youtube\.com|youtu\.be/.test(href)) { window.open(href, '_blank', 'noopener'); return; }
         modalVideo.src = href;
         modal.classList.add('visible');
         modal.setAttribute('aria-hidden', 'false');

@@ -258,6 +258,48 @@ async function queryWhitelistByEmail(projectId, apiKey, email) {
  */
 export default {
   async fetch(request, env, ctx) {
+      // File proxy endpoint: POST /files/proxy with JSON { idToken, fileUrl }
+      try {
+        const url = new URL(request.url);
+        if (url.pathname === '/files/proxy' && request.method === 'POST') {
+          const { idToken, fileUrl } = await request.json().catch(() => ({}));
+          if (!idToken || !fileUrl) {
+            return new Response(JSON.stringify({ error: 'Missing idToken or fileUrl' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          }
+
+          // Verify token and whitelist
+          const decodedToken = await verifyFirebaseToken(idToken, env.FIREBASE_PROJECT_ID);
+          const email = decodedToken.email;
+          const uid = decodedToken.uid;
+          if (!email) return new Response(JSON.stringify({ error: 'Email not in token' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+
+          const whitelist = await getUserWhitelist(env.FIREBASE_PROJECT_ID, env.FIRESTORE_API_KEY, email, uid, env);
+          if (!whitelist || !whitelist.allowed) {
+            return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+          }
+
+          // Collect allowed URLs (exact-match) from arrays and fallback fields
+          const allowedUrls = new Set([...(whitelist.accessBooks || []), ...(whitelist.accessArticles || []), ...(whitelist.accessVideos || []), ...(whitelist.access || []), ...(whitelist.accessFallback || [])].filter(Boolean));
+          if (!allowedUrls.has(fileUrl)) {
+            return new Response(JSON.stringify({ error: 'File not whitelisted for this user' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+          }
+
+          // Fetch the file from the origin (Cloudinary) and stream it back
+          const fetchResp = await fetch(fileUrl);
+          if (!fetchResp.ok) {
+            const txt = await fetchResp.text().catch(() => '');
+            return new Response(JSON.stringify({ error: 'Failed to fetch file', status: fetchResp.status, body: txt }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+          }
+
+          // Return response with same content-type and CORS
+          const headers = new Headers(fetchResp.headers);
+          headers.set('Access-Control-Allow-Origin', '*');
+          return new Response(fetchResp.body, { status: fetchResp.status, headers });
+        }
+      } catch (e) {
+        console.error('file proxy error', e);
+        return new Response(JSON.stringify({ error: 'File proxy error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      }
     // CORS headers
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
