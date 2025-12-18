@@ -288,7 +288,6 @@ export default {
         console.error('file proxy error', e);
         return new Response(JSON.stringify({ error: 'File proxy error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
       }
-    // CORS headers
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
