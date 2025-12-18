@@ -30,46 +30,17 @@ function base64urlToUint8Array(base64url) {
 
 // Helper: import RSA public key from JWKS n/e
 async function importRsaPublicKey(n, e) {
-  // Build the SPKI DER structure for RSA public key
-  // See RFC 3447, RFC 5280, RFC 7517
-  function toUint8(arr) { return new Uint8Array(arr); }
-  function concat(...arrays) {
-    let total = arrays.reduce((sum, arr) => sum + arr.length, 0);
-    let result = new Uint8Array(total);
-    let offset = 0;
-    for (let arr of arrays) { result.set(arr, offset); offset += arr.length; }
-    return result;
-  }
-  function encodeLength(len) {
-    if (len < 128) return Uint8Array.of(len);
-    const bytes = [];
-    while (len > 0) { bytes.unshift(len & 0xff); len >>= 8; }
-    return Uint8Array.of(0x80 | bytes.length, ...bytes);
-  }
-  function asn1encode(tag, data) {
-    return concat([tag], encodeLength(data.length), data);
-  }
-  function asn1int(bytes) {
-    // Add leading 0 if high bit set
-    if (bytes[0] & 0x80) bytes = concat([0], bytes);
-    return asn1encode(0x02, bytes);
-  }
-  // ASN.1 SEQUENCE of modulus and exponent
-  const modulus = asn1int(base64urlToUint8Array(n));
-  const exponent = asn1int(base64urlToUint8Array(e));
-  const seq = asn1encode(0x30, concat(modulus, exponent));
-  // Wrap in BIT STRING
-  const bitstr = asn1encode(0x03, concat([0], seq));
-  // AlgorithmIdentifier for rsaEncryption
-  const algId = asn1encode(0x30, concat(
-    asn1encode(0x06, Uint8Array.of(0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01)),
-    asn1encode(0x05, new Uint8Array([]))
-  ));
-  // Final SPKI sequence
-  const spki = asn1encode(0x30, concat(algId, bitstr));
+  // Import the RSA public key directly from JWK (n, e)
+  const jwk = {
+    kty: 'RSA',
+    n: n,
+    e: e,
+    alg: 'RS256',
+    ext: true
+  };
   return await crypto.subtle.importKey(
-    'spki',
-    spki.buffer,
+    'jwk',
+    jwk,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false,
     ['verify']
@@ -79,8 +50,8 @@ async function importRsaPublicKey(n, e) {
 async function verifyFirebaseToken(idToken, projectId) {
   try {
     // Decode the token header to get the key ID
-    const [headerB64] = idToken.split('.');
-    const header = JSON.parse(atob(headerB64.replace(/-/g, '+').replace(/_/g, '/')));
+    const [jwtHeaderB64, jwtPayloadB64, jwtSignatureB64] = idToken.split('.');
+    const header = JSON.parse(atob(jwtHeaderB64.replace(/-/g, '+').replace(/_/g, '/')));
 
 
     // Fetch Google's JWKS public keys
@@ -93,10 +64,10 @@ async function verifyFirebaseToken(idToken, projectId) {
     // Import the public key from n/e
     const cryptoKey = await importRsaPublicKey(jwk.n, jwk.e);
 
-    // Verify the signature
-    const [headerPayloadB64, signatureB64] = idToken.split('.').slice(0, 2);
-    const signature = Uint8Array.from(atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-    const data = new TextEncoder().encode(`${headerB64}.${headerPayloadB64}`);
+
+    // Correct JWT signature verification: signature is over header.payload (base64url), signature is base64url decoded
+    const signature = base64urlToUint8Array(jwtSignatureB64);
+    const data = new TextEncoder().encode(`${jwtHeaderB64}.${jwtPayloadB64}`);
 
     const isValid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', cryptoKey, signature, data);
 
@@ -105,8 +76,7 @@ async function verifyFirebaseToken(idToken, projectId) {
     }
 
     // Decode payload
-    const payloadB64 = idToken.split('.')[1];
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+    const payload = JSON.parse(atob(jwtPayloadB64.replace(/-/g, '+').replace(/_/g, '/')));
 
     // Verify claims
     const now = Math.floor(Date.now() / 1000);
