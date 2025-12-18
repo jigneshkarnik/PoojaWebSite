@@ -1,5 +1,20 @@
 {
   "name": "private-content-access",
   "compatibility_date": "2025-12-10",
-  "main": "cloudflare-worker.js"
+  "main": "cloudflare-worker.js",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
+  }
 }
