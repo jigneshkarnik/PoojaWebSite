@@ -380,8 +380,8 @@ export default {
       // Debug mode always off
       const debugMode = false;
 
-      // Get user's whitelist doc
-      const whitelist = await getUserWhitelist(projectId, apiKey, email, uid);
+      // Get user's whitelist doc (pass env so KV caching is available)
+      const whitelist = await getUserWhitelist(projectId, apiKey, email, uid, env);
 
       if (!whitelist || !whitelist.allowed) {
         const body = {
@@ -395,7 +395,7 @@ export default {
         };
         return new Response(JSON.stringify(body), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
         });
       }
 
@@ -421,7 +421,7 @@ export default {
       };
       return new Response(JSON.stringify(successBody), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       });
     } catch (err) {
       console.error('Worker error:', err);
