@@ -52,15 +52,21 @@ async function verifyFirebaseToken(idToken, projectId) {
     // Decode the token header to get the key ID
     const [jwtHeaderB64, jwtPayloadB64, jwtSignatureB64] = idToken.split('.');
     const header = JSON.parse(atob(jwtHeaderB64.replace(/-/g, '+').replace(/_/g, '/')));
+    console.log('verifyFirebaseToken: header.kid=', header.kid, 'alg=', header.alg);
 
 
     // Fetch Google's JWKS public keys
-    const jwksResponse = await fetch('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com');
+    const jwksUrl = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+    console.log('verifyFirebaseToken: fetching JWKS from', jwksUrl);
+    const jwksResponse = await fetch(jwksUrl);
     const jwks = await jwksResponse.json();
+    console.log('verifyFirebaseToken: jwks.keys.length=', Array.isArray(jwks.keys) ? jwks.keys.length : 0);
     const jwk = jwks.keys.find(k => k.kid === header.kid);
     if (!jwk) {
+      console.error('verifyFirebaseToken: public key not found for kid', header.kid);
       throw new Error('Public key not found in JWKS');
     }
+    console.log('verifyFirebaseToken: found jwk:', { kid: jwk.kid, kty: jwk.kty, alg: jwk.alg });
     // Import the public key from n/e
     const cryptoKey = await importRsaPublicKey(jwk.n, jwk.e);
 
@@ -72,12 +78,16 @@ async function verifyFirebaseToken(idToken, projectId) {
     const isValid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', cryptoKey, signature, data);
 
     if (!isValid) {
+      console.error('verifyFirebaseToken: signature verification failed');
       throw new Error('Invalid signature');
     }
 
     // Decode payload
     const payload = JSON.parse(atob(jwtPayloadB64.replace(/-/g, '+').replace(/_/g, '/')));
 
+    console.log('verifyFirebaseToken: token payload sample:', {
+      sub: payload.sub, uid: payload.user_id || payload.uid, email: payload.email, aud: payload.aud, iss: payload.iss, exp: payload.exp
+    });
     // Verify claims
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) {
@@ -141,15 +151,21 @@ async function getUserWhitelist(projectId, apiKey, email, uid) {
   for (const docId of docIds) {
     try {
       const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whitelist/${encodeURIComponent(docId)}?key=${apiKey}`;
+      console.log('getUserWhitelist: fetching', url);
       const response = await fetch(url);
+      console.log('getUserWhitelist: response.status=', response.status);
       
       if (response.ok) {
         const data = await response.json();
         // Parse Firestore document format
         const allowed = data.fields?.allowed?.booleanValue || false;
         const access = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
+        console.log('getUserWhitelist: docId=', docId, 'allowed=', allowed, 'accessCount=', access.length);
         
         return { allowed, access };
+      } else {
+        const txt = await response.text();
+        console.log('getUserWhitelist: non-ok response body:', txt);
       }
     } catch (err) {
       console.error(`Error fetching whitelist for ${docId}:`, err);
