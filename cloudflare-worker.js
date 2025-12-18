@@ -347,7 +347,6 @@ export default {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      }
 
       // Filter content based on user's access array
       const userAccess = whitelist.access || [];
