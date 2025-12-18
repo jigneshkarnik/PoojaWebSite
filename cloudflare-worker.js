@@ -146,24 +146,55 @@ const CONTENT_CATALOG = [
  * Fetch user's whitelist document from Firestore using REST API
  */
 async function getUserWhitelist(projectId, apiKey, email, uid, env) {
-  // Try fast path: lookup by UID if available
   const kv = env && env.WHITELIST_KV;
-  if (uid) {
+
+  // Primary: lookup by email document ID (assume lowercase docId)
+  if (email) {
+    const emailId = email.toLowerCase();
     try {
-      // Check KV cache first
+      // Check KV cache keyed by emailId first
       if (kv) {
         try {
-          const cached = await kv.get(uid);
+          const cached = await kv.get(emailId);
           if (cached) {
-            console.log('getUserWhitelist: cache hit for uid', uid);
+            console.log('getUserWhitelist: cache hit for emailId', emailId);
             return JSON.parse(cached);
           }
         } catch (e) {
-          console.warn('getUserWhitelist: KV get error', e);
+          console.warn('getUserWhitelist: KV get error for emailId', e);
         }
       }
 
-      // Fetch document with docId = uid
+      const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whitelist/${encodeURIComponent(emailId)}?key=${apiKey}`;
+      console.log('getUserWhitelist: fetching by email docId', url);
+      const response = await fetch(url);
+      console.log('getUserWhitelist: response.status=', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        const allowed = data.fields?.allowed?.booleanValue || false;
+        const access = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const result = { allowed, access, raw: data };
+        // Cache result keyed by emailId and optionally uid
+        if (kv) {
+          try { await kv.put(emailId, JSON.stringify(result), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
+          if (uid) {
+            try { await kv.put(uid, JSON.stringify(result), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
+          }
+        }
+        return result;
+      } else {
+        const txt = await response.text();
+        console.log('getUserWhitelist: email docId lookup non-ok', response.status, txt);
+      }
+    } catch (err) {
+      console.error(`Error fetching whitelist for email doc ${emailId}:`, err);
+    }
+  }
+
+  // Secondary: try lookup by UID (docId = uid)
+  if (uid) {
+    try {
       const uidUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whitelist/${encodeURIComponent(uid)}?key=${apiKey}`;
       console.log('getUserWhitelist: fetching by uid', uidUrl);
       const uidResp = await fetch(uidUrl);
@@ -172,9 +203,12 @@ async function getUserWhitelist(projectId, apiKey, email, uid, env) {
         const allowed = data.fields?.allowed?.booleanValue || false;
         const access = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
         const result = { allowed, access, raw: data };
-        // Cache result in KV
+        // Cache under uid and emailId if available
         if (kv) {
           try { await kv.put(uid, JSON.stringify(result), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
+          if (email) {
+            try { await kv.put(email.toLowerCase(), JSON.stringify(result), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
+          }
         }
         return result;
       } else {
@@ -186,41 +220,16 @@ async function getUserWhitelist(projectId, apiKey, email, uid, env) {
     }
   }
 
-  // Next, try document with docId = email (lowercase)
-  if (email) {
-    const emailId = email.toLowerCase();
-    try {
-      const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whitelist/${encodeURIComponent(emailId)}?key=${apiKey}`;
-      console.log('getUserWhitelist: fetching by email docId', url);
-      const response = await fetch(url);
-      console.log('getUserWhitelist: response.status=', response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        const allowed = data.fields?.allowed?.booleanValue || false;
-        const access = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
-        const result = { allowed, access, raw: data };
-        // If we have UID, cache under UID as well
-        if (kv && uid) {
-          try { await kv.put(uid, JSON.stringify(result), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
-        }
-        return result;
-      } else {
-        const txt = await response.text();
-        console.log('getUserWhitelist: non-ok response body:', txt);
-      }
-    } catch (err) {
-      console.error(`Error fetching whitelist for email doc ${emailId}:`, err);
-    }
-  }
-
-  // Final fallback: structuredQuery by email field
+  // Final fallback: structuredQuery by email field (handles cases where email is stored as a field)
   if (email) {
     const q = await queryWhitelistByEmail(projectId, apiKey, email);
     if (q) {
-      // cache under uid if available
-      if (kv && uid) {
-        try { await kv.put(uid, JSON.stringify(q), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
+      // cache under emailId and uid if available
+      if (kv) {
+        try { await kv.put(email.toLowerCase(), JSON.stringify(q), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
+        if (uid) {
+          try { await kv.put(uid, JSON.stringify(q), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
+        }
       }
       return q;
     }
