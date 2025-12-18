@@ -174,6 +174,45 @@ async function getUserWhitelist(projectId, apiKey, email, uid) {
 
   return null;
 }
+/**
+ * If no doc found by id, try querying the collection for a document whose `email` field matches.
+ */
+async function queryWhitelistByEmail(projectId, apiKey, email) {
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery?key=${apiKey}`;
+    console.log('queryWhitelistByEmail: running structuredQuery for', email);
+    const body = {
+      structuredQuery: {
+        from: [{ collectionId: 'whitelist' }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: 'email' },
+            op: 'EQUAL',
+            value: { stringValue: email.toLowerCase() }
+          }
+        },
+        limit: 1
+      }
+    };
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    console.log('queryWhitelistByEmail: response length=', Array.isArray(data) ? data.length : 0);
+    if (Array.isArray(data) && data.length > 0) {
+      for (const item of data) {
+        if (item.document) {
+          const doc = item.document;
+          const allowed = doc.fields?.allowed?.booleanValue || false;
+          const access = doc.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
+          console.log('queryWhitelistByEmail: found docId=', doc.name, 'allowed=', allowed);
+          return { allowed, access, raw: doc };
+        }
+      }
+    }
+  } catch (err) {
+    console.error('queryWhitelistByEmail error:', err);
+  }
+  return null;
+}
 
 /**
  * Main request handler
