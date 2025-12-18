@@ -113,30 +113,53 @@
         return;
       }
 
+      // Ensure WORKER_URL ends with slash
+      const workerBase = WORKER_URL.endsWith('/') ? WORKER_URL : WORKER_URL + '/';
+      const fileProxy = workerBase + 'files/'; // Worker should proxy files at e.g. /files/books/<name>
+
       const { books = [], articles = [], videos = [] } = data.content || {};
-      let html = '';
+
+      // Build separate sections
+      const sections = [];
 
       if (books.length > 0) {
-        html += '<h4>Books</h4><ul>' + books.map(book =>
-          `<li><a href="/private/books/${encodeURIComponent(book)}" target="_blank">${book}</a></li>`
-        ).join('') + '</ul>';
-      }
-      if (articles.length > 0) {
-        html += '<h4>Articles</h4><ul>' + articles.map(article =>
-          `<li><a href="/private/articles/${encodeURIComponent(article)}" target="_blank">${article}</a></li>`
-        ).join('') + '</ul>';
-      }
-      if (videos.length > 0) {
-        html += '<h4>Videos</h4><ul>' + videos.map(video =>
-          `<li><a href="${video.startsWith('http') ? video : '/private/videos/' + encodeURIComponent(video)}" target="_blank">${video}</a></li>`
-        ).join('') + '</ul>';
+        const list = books.map(book => {
+          const href = `${fileProxy}books/${encodeURIComponent(book)}`;
+          return `<li><a href="${href}" target="_blank" rel="noopener">${escapeHtml(book)}</a></li>`;
+        }).join('');
+        sections.push(`<section class="content-section"><h3>Books</h3><ul>${list}</ul></section>`);
       }
 
-      if (!html) {
-        html = '<p>No content available to you at this time.</p>';
+      if (articles.length > 0) {
+        const list = articles.map(a => {
+          const href = `${fileProxy}articles/${encodeURIComponent(a)}`;
+          return `<li><a href="${href}" target="_blank" rel="noopener">${escapeHtml(a)}</a></li>`;
+        }).join('');
+        sections.push(`<section class="content-section"><h3>Articles</h3><ul>${list}</ul></section>`);
       }
-      contentListEl.innerHTML = html;
+
+      if (videos.length > 0) {
+        const list = videos.map(v => {
+          const href = v.startsWith('http') ? v : `${fileProxy}videos/${encodeURIComponent(v)}`;
+          return `<li><a href="${href}" target="_blank" rel="noopener">${escapeHtml(v)}</a></li>`;
+        }).join('');
+        sections.push(`<section class="content-section"><h3>Videos</h3><ul>${list}</ul></section>`);
+      }
+
+      if (sections.length === 0) {
+        contentListEl.innerHTML = '<p>No content available to you at this time.</p>';
+        return;
+      }
+
+      contentListEl.innerHTML = sections.join('');
     };
+
+    // small helper to avoid HTML injection in filenames
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>\"']/g, (s) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[s]));
+    }
 
     const updateUI = (user, data) => {
       if (!user) {
