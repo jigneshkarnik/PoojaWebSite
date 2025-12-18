@@ -107,40 +107,6 @@ async function verifyFirebaseToken(idToken, projectId) {
   }
 }
 
-/**
- * Sample content catalog (can also come from Firestore or a static JSON)
- * Each item has: id, title, description, type, link
- */
-const CONTENT_CATALOG = [
-  {
-    id: 'article-1',
-    title: 'Homeopathy Basics',
-    description: 'An introduction to homeopathic principles',
-    type: 'Article',
-    link: '/private/articles/homeopathy-basics.pdf',
-  },
-  {
-    id: 'article-2',
-    title: 'Women\'s Health Guide',
-    description: 'Comprehensive guide to homeopathic remedies for women\'s health',
-    type: 'Article',
-    link: '/private/articles/womens-health.pdf',
-  },
-  {
-    id: 'video-1',
-    title: 'Tissue Salts Workshop',
-    description: 'Video workshop on biochemic tissue salts',
-    type: 'Video',
-    link: 'https://youtube.com/watch?v=...',
-  },
-  {
-    id: 'book-1',
-    title: 'The Complete Homeopathy Book',
-    description: 'Detailed reference book',
-    type: 'Book',
-    link: '/private/books/complete-homeopathy.pdf',
-  },
-];
 
 /**
  * Fetch user's whitelist document from Firestore using REST API
@@ -204,8 +170,12 @@ async function getUserWhitelist(projectId, apiKey, email, uid, env) {
       if (uidResp.ok) {
         const data = await uidResp.json();
         const allowed = data.fields?.allowed?.booleanValue || false;
-        const access = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
-        const result = { allowed, access, raw: data };
+        const accessBooks = data.fields?.accessBooks?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const accessArticles = data.fields?.accessArticles?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const accessVideos = data.fields?.accessVideos?.arrayValue?.values?.map(v => v.stringValue) || [];
+        // If older `access` field exists, preserve it in raw but also (optionally) map into books
+        const accessFallback = data.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const result = { allowed, accessBooks, accessArticles, accessVideos, raw: data, accessFallback };
         // Cache under uid and emailId if available
         if (kv) {
           try { await kv.put(uid, JSON.stringify(result), { expirationTtl: 300 }); } catch (e) { console.warn('KV put error', e); }
@@ -268,9 +238,12 @@ async function queryWhitelistByEmail(projectId, apiKey, email) {
         if (item.document) {
           const doc = item.document;
           const allowed = doc.fields?.allowed?.booleanValue || false;
-          const access = doc.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
+          const accessBooks = doc.fields?.accessBooks?.arrayValue?.values?.map(v => v.stringValue) || [];
+          const accessArticles = doc.fields?.accessArticles?.arrayValue?.values?.map(v => v.stringValue) || [];
+          const accessVideos = doc.fields?.accessVideos?.arrayValue?.values?.map(v => v.stringValue) || [];
+          const accessFallback = doc.fields?.access?.arrayValue?.values?.map(v => v.stringValue) || [];
           console.log('queryWhitelistByEmail: found docId=', doc.name, 'allowed=', allowed);
-          return { allowed, access, raw: doc };
+          return { allowed, accessBooks, accessArticles, accessVideos, raw: doc, accessFallback };
         }
       }
     }
@@ -340,9 +313,8 @@ export default {
         });
       }
 
-      // Detect debug mode
-      const reqUrl = new URL(request.url);
-      const debugMode = reqUrl.searchParams.get('debug') === '1' || request.headers.get('x-debug') === '1';
+      // Debug mode always off
+      const debugMode = false;
 
       // Get user's whitelist doc
       const whitelist = await getUserWhitelist(projectId, apiKey, email, uid);
@@ -350,27 +322,30 @@ export default {
       if (!whitelist || !whitelist.allowed) {
         const body = {
           allowed: false,
-          content: [],
+          content: {
+            books: [],
+            articles: [],
+            videos: []
+          },
           user: { email, uid },
         };
-        if (debugMode) body.debug = { tokenPayload: decodedToken, whitelistRaw: whitelist?.raw || null };
         return new Response(JSON.stringify(body), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Filter content based on user's access arrays
+      // Build allowed content directly from Firestore arrays
       const accessBooks = whitelist.accessBooks || [];
       const accessArticles = whitelist.accessArticles || [];
       const accessVideos = whitelist.accessVideos || [];
 
-      // Filter catalog by type and allowed IDs
-      const allowedBooks = CONTENT_CATALOG.filter(item => item.type === 'Book' && accessBooks.includes(item.id));
-      const allowedArticles = CONTENT_CATALOG.filter(item => item.type === 'Article' && accessArticles.includes(item.id));
-      const allowedVideos = CONTENT_CATALOG.filter(item => item.type === 'Video' && accessVideos.includes(item.id));
-
-      const allowedContent = [...allowedBooks, ...allowedArticles, ...allowedVideos];
+      // Each entry is just the file ID/name; client can construct links as needed
+      const allowedContent = {
+        books: accessBooks,
+        articles: accessArticles,
+        videos: accessVideos
+      };
 
       const successBody = {
         allowed: true,
@@ -380,7 +355,6 @@ export default {
           accessArticlesCount: accessArticles.length,
           accessVideosCount: accessVideos.length },
       };
-      if (debugMode) successBody.debug = { tokenPayload: decodedToken, whitelistRaw: whitelist?.raw || null };
       return new Response(JSON.stringify(successBody), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
