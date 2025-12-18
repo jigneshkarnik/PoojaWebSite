@@ -16,42 +16,50 @@
 /**
  * Verify Firebase ID token using Google's public keys
  */
+// Helper to import X.509 certificate as a public key
+async function certificateToCryptoKey(pem) {
+  // Remove PEM header/footer and line breaks
+  const b64 = pem.replace(/-----BEGIN CERTIFICATE-----/, '')
+                .replace(/-----END CERTIFICATE-----/, '')
+                .replace(/\s+/g, '');
+  const der = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  // Import as X.509 certificate
+  return await crypto.subtle.importKey(
+    'x509',
+    der.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify']
+  );
+}
+
 async function verifyFirebaseToken(idToken, projectId) {
   try {
     // Decode the token header to get the key ID
     const [headerB64] = idToken.split('.');
     const header = JSON.parse(atob(headerB64.replace(/-/g, '+').replace(/_/g, '/')));
-    
+
     // Fetch Google's public keys
     const keysResponse = await fetch('https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com');
     const keys = await keysResponse.json();
-    
+
     // Get the public key for this token
     const publicKey = keys[header.kid];
     if (!publicKey) {
       throw new Error('Public key not found');
     }
 
-    // Import the public key
+    // Import the X.509 certificate as a public key
     const pemKey = publicKey.replace(/\\n/g, '\n');
-    const keyData = pemKey.match(/-----BEGIN CERTIFICATE-----\n([\s\S]+?)\n-----END CERTIFICATE-----/)[1];
-    const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
-    
-    const cryptoKey = await crypto.subtle.importKey(
-      'spki',
-      binaryKey,
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
+    const cryptoKey = await certificateToCryptoKey(pemKey);
 
     // Verify the signature
     const [headerPayloadB64, signatureB64] = idToken.split('.').slice(0, 2);
     const signature = Uint8Array.from(atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
     const data = new TextEncoder().encode(`${headerB64}.${headerPayloadB64}`);
-    
+
     const isValid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', cryptoKey, signature, data);
-    
+
     if (!isValid) {
       throw new Error('Invalid signature');
     }
@@ -59,7 +67,7 @@ async function verifyFirebaseToken(idToken, projectId) {
     // Decode payload
     const payloadB64 = idToken.split('.')[1];
     const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
-    
+
     // Verify claims
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) {
