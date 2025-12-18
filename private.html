@@ -23,6 +23,17 @@
     .content-item .status.denied { color: #b00020; }
     .content-item a { text-decoration: none; color: var(--color-pink); font-weight: 600; }
     .loading { color: var(--color-muted); }
+    .content-section { background: #fff; border: 1px solid #eee; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .content-section h3 { margin-top: 0; color: var(--color-pink); }
+    .content-section ul { margin: 0; padding-left: 1.25rem; }
+    .content-section li { margin: 0.35rem 0; }
+
+    /* Modal for video streaming */
+    .modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); z-index: 1200; }
+    .modal.visible { display: flex; }
+    .modal-content { background: #000; padding: 0.5rem; border-radius: 6px; max-width: 90%; max-height: 90%; }
+    .modal video { display:block; width: 100%; height: auto; }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; color: #fff; background: transparent; border: none; font-size: 1.25rem; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -48,6 +59,13 @@
           <p>Below are the resources available to you:</p>
           <div class="content-list" id="content-list">
             <div class="loading">Loading your content...</div>
+          </div>
+        </div>
+        <!-- Modal used for video streaming -->
+        <div id="media-modal" class="modal" aria-hidden="true">
+          <button id="modal-close" class="modal-close">✕</button>
+          <div class="modal-content">
+            <video id="modal-video" controls playsinline></video>
           </div>
         </div>
       </div>
@@ -113,45 +131,46 @@
         return;
       }
 
-      // Ensure WORKER_URL ends with slash
-      const workerBase = WORKER_URL.endsWith('/') ? WORKER_URL : WORKER_URL + '/';
-      const fileProxy = workerBase + 'files/'; // Worker should proxy files at e.g. /files/books/<name>
+      // (No proxy) We render URLs directly from Firestore
 
-      const { books = [], articles = [], videos = [] } = data.content || {};
+        const { books = [], articles = [], videos = [] } = data.content || {};
 
-      // Build separate sections
-      const sections = [];
+        // Build separate sections and use URL strings from Firestore directly (do not modify)
+        const sections = [];
 
-      if (books.length > 0) {
-        const list = books.map(book => {
-          const href = `${fileProxy}books/${encodeURIComponent(book)}`;
-          return `<li><a href="${href}" target="_blank" rel="noopener">${escapeHtml(book)}</a></li>`;
-        }).join('');
-        sections.push(`<section class="content-section"><h3>Books</h3><ul>${list}</ul></section>`);
-      }
+        if (books.length > 0) {
+          const list = books.map(bookUrl => {
+            const href = String(bookUrl);
+            const label = getLabelFromUrl(href);
+            return `<li><a href="${href}" target="_blank" rel="noopener" data-type="book">${escapeHtml(label)}</a></li>`;
+          }).join('');
+          sections.push(`<section class="content-section"><h3>Books</h3><ul>${list}</ul></section>`);
+        }
 
-      if (articles.length > 0) {
-        const list = articles.map(a => {
-          const href = `${fileProxy}articles/${encodeURIComponent(a)}`;
-          return `<li><a href="${href}" target="_blank" rel="noopener">${escapeHtml(a)}</a></li>`;
-        }).join('');
-        sections.push(`<section class="content-section"><h3>Articles</h3><ul>${list}</ul></section>`);
-      }
+        if (articles.length > 0) {
+          const list = articles.map(articleUrl => {
+            const href = String(articleUrl);
+            const label = getLabelFromUrl(href);
+            return `<li><a href="${href}" target="_blank" rel="noopener" data-type="article">${escapeHtml(label)}</a></li>`;
+          }).join('');
+          sections.push(`<section class="content-section"><h3>Articles</h3><ul>${list}</ul></section>`);
+        }
 
-      if (videos.length > 0) {
-        const list = videos.map(v => {
-          const href = v.startsWith('http') ? v : `${fileProxy}videos/${encodeURIComponent(v)}`;
-          return `<li><a href="${href}" target="_blank" rel="noopener">${escapeHtml(v)}</a></li>`;
-        }).join('');
-        sections.push(`<section class="content-section"><h3>Videos</h3><ul>${list}</ul></section>`);
-      }
+        if (videos.length > 0) {
+          const list = videos.map(videoUrl => {
+            const href = String(videoUrl);
+            const label = getLabelFromUrl(href);
+            return `<li><a href="${href}" target="_blank" rel="noopener" data-type="video">${escapeHtml(label)}</a></li>`;
+          }).join('');
+          sections.push(`<section class="content-section"><h3>Videos</h3><ul>${list}</ul></section>`);
+        }
 
-      if (sections.length === 0) {
-        contentListEl.innerHTML = '<p>No content available to you at this time.</p>';
-        return;
-      }
+        if (sections.length === 0) {
+          contentListEl.innerHTML = '<p>No content available to you at this time.</p>';
+          return;
+        }
 
-      contentListEl.innerHTML = sections.join('');
+        contentListEl.innerHTML = sections.join('');
     };
 
     // small helper to avoid HTML injection in filenames
@@ -160,6 +179,52 @@
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[s]));
     }
+
+    function getLabelFromUrl(u) {
+      try {
+        const url = new URL(u);
+        const parts = url.pathname.split('/').filter(Boolean);
+        return parts.length ? decodeURIComponent(parts[parts.length - 1]) : u;
+      } catch (e) {
+        return u;
+      }
+    }
+
+    // Modal handling for video links
+    const modal = document.getElementById('media-modal');
+    const modalVideo = document.getElementById('modal-video');
+    const modalClose = document.getElementById('modal-close');
+
+    contentListEl.addEventListener('click', (ev) => {
+      const a = ev.target.closest('a');
+      if (!a) return;
+      const type = a.dataset.type;
+      if (type === 'video') {
+        ev.preventDefault();
+        const href = a.getAttribute('href');
+        // open YouTube links in new tab
+        if (/youtube\.com|youtu\.be/.test(href)) {
+          window.open(href, '_blank', 'noopener');
+          return;
+        }
+        modalVideo.src = href;
+        modal.classList.add('visible');
+        modal.setAttribute('aria-hidden', 'false');
+        modalVideo.play().catch(() => {});
+      }
+    });
+
+    modalClose.addEventListener('click', () => {
+      modalVideo.pause();
+      modalVideo.removeAttribute('src');
+      modalVideo.load();
+      modal.classList.remove('visible');
+      modal.setAttribute('aria-hidden', 'true');
+    });
+
+    modal.addEventListener('click', (ev) => {
+      if (ev.target === modal) modalClose.click();
+    });
 
     const updateUI = (user, data) => {
       if (!user) {
