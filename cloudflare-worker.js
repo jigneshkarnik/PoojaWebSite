@@ -118,7 +118,7 @@ async function getUserWhitelist(projectId, apiKey, email, uid) {
     const emailId = email.toLowerCase();
     try {
 
-      const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whitelist/${encodeURIComponent(emailId)}?key=${apiKey}`;
+      const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/whitelist/${encodeURIComponent(emailId)}?key=${apiKey}&t=${Date.now()}`;
       console.log('getUserWhitelist: fetching by email docId', url);
       const response = await fetch(url);
       console.log('getUserWhitelist: response.status=', response.status);
@@ -273,7 +273,12 @@ export default {
           }
 
           // Fetch the file from the origin (public URL) and stream it back
-          const fetchResp = await fetch(fileUrl);
+          const fetchResp = await fetch(fileUrl, {
+              cf: {
+                  cacheTtl: 0, // Do not cache this result
+                  cacheEverything: false
+                  }
+          });
           if (!fetchResp.ok) {
             const txt = await fetchResp.text().catch(() => '');
             return new Response(JSON.stringify({ error: 'Failed to fetch file', status: fetchResp.status, body: txt }), { status: 502, headers: { 'Content-Type': 'application/json' } });
