@@ -276,6 +276,7 @@ label { font-weight: 600; color: var(--color-pink); }
 .section-content {
     max-width: 1400px;
     margin: 0 auto;
+    padding: 0 1rem;
 }
 
 .consultation-section h1 {
@@ -442,6 +443,25 @@ iframe {
     line-height: 1.8;
     margin: 0;
     font-weight: 500;
+}
+
+.locations-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem;
+    margin: 2rem 0;
+    width: 100%;
+}
+
+.location-card {
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 1024px) {
+    .locations-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Consultation Types */
@@ -1487,3 +1507,147 @@ footer {
         font-size: 0.9rem;
     }
 }
+
+/* Past Training Sessions Styles */
+.training-session {
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: #f9f9f9;
+    border-radius: 12px;
+}
+
+.session-header {
+    margin-bottom: 2rem;
+}
+
+.session-header h2 {
+    font-size: 1.8rem;
+    color: var(--color-pink);
+    margin: 0 0 0.5rem 0;
+}
+
+.session-subtitle {
+    font-size: 1.1rem;
+    color: var(--color-muted);
+    margin: 0;
+}
+
+.session-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.detail-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.detail-card h3 {
+    color: var(--color-pink);
+    margin-top: 0;
+    font-size: 1.2rem;
+}
+
+.session-section {
+    margin: 2rem 0;
+}
+
+.session-section h3 {
+    color: var(--color-pink);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+}
+
+.session-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.gallery-item {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.videos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+}
+
+.video-item {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.video-item h4 {
+    color: var(--color-pink);
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.materials-container {
+    display: flex;
+    justify-content: center;
+}
+
+.material-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, var(--color-pink), #d946a6);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 12px rgba(219, 39, 119, 0.3);
+}
+
+.material-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(219, 39, 119, 0.4);
+}
+
+.material-icon {
+    font-size: 1.5rem;
+}
+
+.external-icon {
+    margin-left: 0.5rem;
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .training-session {
+        padding: 1.5rem;
+    }
+
+    .session-gallery {
+        grid-template-columns: 1fr;
+    }
+
+    .videos-container {
+        grid-template-columns: 1fr;
+    }
+
+    .material-link {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
