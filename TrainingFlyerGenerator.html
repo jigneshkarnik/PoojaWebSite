@@ -1,15 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
-<head>
+<html lang="en" class="h-full"><head><script type="text/javascript" src="/___vscode_livepreview_injected_script"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dr. Pooja Karnik Flyer Generator & Template</title>
+    <title>Dr. Pooja Karnik Flyer Generator &amp; Template</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- html2canvas for saving as image -->
@@ -35,147 +34,66 @@
             }
         }
     </script>
-    <style>
+    <style id="app-style">
+        /* US Legal = 8.5in x 14in. The flyer is built at exactly 816x1344 CSS px (96dpi)
+           and scaled uniformly for on-screen preview, so print is a 1:1 fit. */
+        @page {
+            size: 8.5in 14in;
+            margin: 0;
+        }
+        html, body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        #flyer-container {
+            width: 816px;
+            height: 1344px;
+            flex-shrink: 0;
+            transform-origin: top left;
+        }
+        #flyer-scaler {
+            position: relative;
+        }
         @media print {
+            html, body {
+                width: 8.5in;
+                height: 14in;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                overflow: hidden !important;
+                display: block !important;
+            }
             body * {
                 visibility: hidden;
             }
             #flyer-container, #flyer-container * {
                 visibility: visible;
             }
+            #flyer-scaler {
+                position: fixed !important;
+                left: 0;
+                top: 0;
+                width: 8.5in !important;
+                height: 14in !important;
+                margin: 0 !important;
+            }
+            #flyer-container * {
+                box-shadow: none !important;
+            }
             #flyer-container {
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 100%;
-                max-width: 100%;
-                margin: 0;
+                width: 8.5in !important;
+                height: 14in !important;
+                margin: 0 !important;
                 box-shadow: none !important;
                 border: none !important;
-                transform: scale(1) !important;
+                transform: none !important;
             }
             .no-print {
                 display: none !important;
-            }
-        }
-        
-        /* Mobile-first responsive scaling */
-        #flyer-container {
-            width: 100%;
-            max-width: 800px;
-        }
-        
-        /* Mobile (< 640px): Scale down text proportionally */
-        @media (max-width: 640px) {
-            #flyer-container {
-                font-size: 14px;
-            }
-            #flyer-container h2 {
-                font-size: 1.5rem !important;
-            }
-            #flyer-container h3 {
-                font-size: 1.25rem !important;
-            }
-            #flyer-container h4 {
-                font-size: 1rem !important;
-            }
-            #flyer-container p {
-                font-size: 0.875rem !important;
-            }
-            #flyer-container .text-3xl {
-                font-size: 1.5rem !important;
-            }
-            #flyer-container .text-2xl {
-                font-size: 1.25rem !important;
-            }
-            #flyer-container .text-xl {
-                font-size: 1rem !important;
-            }
-            #flyer-container .text-base {
-                font-size: 0.9rem !important;
-            }
-            #flyer-container .text-sm {
-                font-size: 0.75rem !important;
-            }
-            #flyer-container .text-xs {
-                font-size: 0.65rem !important;
-            }
-            #flyer-container .px-10 {
-                padding-left: 0.75rem !important;
-                padding-right: 0.75rem !important;
-            }
-            #flyer-container .py-8 {
-                padding-top: 1rem !important;
-                padding-bottom: 1rem !important;
-            }
-            #flyer-container .py-4 {
-                padding-top: 0.5rem !important;
-                padding-bottom: 0.5rem !important;
-            }
-            #flyer-container .py-6 {
-                padding-top: 0.75rem !important;
-                padding-bottom: 0.75rem !important;
-            }
-            #flyer-container .p-6 {
-                padding: 1rem !important;
-            }
-            #flyer-container .gap-8 {
-                gap: 1rem !important;
-            }
-            #flyer-container .space-y-6 > * + * {
-                margin-top: 0.75rem !important;
-            }
-            #flyer-container .h-20 {
-                height: 2.5rem !important;
-            }
-            #flyer-container .w-24 {
-                width: 5rem !important;
-            }
-            #flyer-container .h-24 {
-                height: 5rem !important;
-            }
-            #flyer-container .w-[290px] {
-                width: 100% !important;
-            }
-            #flyer-container .flex-col.gap-8 {
-                flex-direction: column;
-            }
-            #flyer-container .grid-cols-3 {
-                grid-template-columns: 1fr !important;
-            }
-            #flyer-container .gap-x-8 {
-                column-gap: 1rem !important;
-            }
-            #flyer-container .gap-y-4 {
-                row-gap: 0.75rem !important;
-            }
-            /* Photo container - smaller on mobile */
-            #flyer-container [style*="width: 256px"] {
-                width: 160px !important;
-                height: 160px !important;
-            }
-            #flyer-container .mb-8 {
-                margin-bottom: 1rem !important;
-            }
-            #flyer-container .mb-4 {
-                margin-bottom: 0.75rem !important;
-            }
-        }
-        
-        /* Tablet (640px - 1024px): Moderate scaling */
-        @media (min-width: 641px) and (max-width: 1024px) {
-            #flyer-container {
-                font-size: 15px;
-            }
-            #flyer-container .px-10 {
-                padding-left: 1.5rem !important;
-                padding-right: 1.5rem !important;
-            }
-            #flyer-container .grid-cols-3 {
-                grid-template-columns: repeat(2, 1fr) !important;
-            }
-            #flyer-container .w-[290px] {
-                width: 85% !important;
             }
         }
         
@@ -213,7 +131,7 @@
             <div class="space-y-4 text-sm" id="flyer-form">
                 <!-- Header Info -->
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
-                    <h2 class="text-xs font-bold text-purple-400 uppercase tracking-wider"><i class="fa-solid fa-id-card mr-1"></i> Header & Contact</h2>
+                    <h2 class="text-xs font-bold text-purple-400 uppercase tracking-wider"><i class="fa-solid fa-id-card mr-1"></i> Header &amp; Contact</h2>
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Practitioner Name</label>
                         <input type="text" id="in-practitioner" value="Pooja Karnik, B.H.M.S." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
@@ -247,11 +165,15 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Main Topic</label>
-                        <input type="text" id="in-topic" value="Biochemic Tissue Salts in Rheumatic conditions" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                        <input type="text" id="in-topic" value="Homeopathy in Thyroid Disorders" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Accreditation Note</label>
-                        <input type="text" id="in-accreditation" value="Also receive NVKH Accreditation Points" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                        <input type="text" id="in-accreditation" value="Receive NVKH, NOKH, NWP, BKHD Accreditation Points" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Footer Note (bottom right)</label>
+                        <input type="text" id="in-footer-note" value="NVKH, NOKH, NWP, BKHD Accreditation Points - Nascholing" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
                     </div>
                 </div>
 
@@ -276,7 +198,7 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-xs font-medium text-slate-300 mb-1">Date</label>
-                            <input type="text" id="in-date" value="Sat 4 Oct, 2025" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" id="in-date" value="Sat 12 DEC, 2025" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-300 mb-1">Time</label>
@@ -285,12 +207,12 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Venue Address</label>
-                        <input type="text" id="in-venue" value="Bilderdijkhof 1, 1422 DT Uithoorn" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                        <input type="text" id="in-venue" value="Uithoorn / Mijdrecht / Amstelveen TBD" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-xs font-medium text-slate-300 mb-1">Investment / Fee</label>
-                            <input type="text" id="in-price" value="95 Eur per person" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" id="in-price" value="As Per Ticket" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-300 mb-1">Additional Note</label>
@@ -301,7 +223,7 @@
 
                 <!-- QR Code & Photo -->
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
-                    <h2 class="text-xs font-bold text-purple-400 uppercase tracking-wider"><i class="fa-solid fa-qrcode mr-1"></i> Links & Media</h2>
+                    <h2 class="text-xs font-bold text-purple-400 uppercase tracking-wider"><i class="fa-solid fa-qrcode mr-1"></i> Links &amp; Media</h2>
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1">Registration URL (Generates QR)</label>
                         <input type="text" id="in-qr-url" value="https://eventix.shop/adkrvjjb" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
@@ -324,9 +246,7 @@
                             <i class="fa-solid fa-plus mr-1"></i> Add Logo
                         </button>
                     </div>
-                    <div id="logo-inputs-container" class="space-y-2 mt-2">
-                        <!-- Populated dynamically -->
-                    </div>
+                    <div id="logo-inputs-container" class="space-y-2 mt-2"></div>
                 </div>
             </div>
         </div>
@@ -341,6 +261,10 @@
                 <i class="fa-solid fa-image"></i>
                 <span>Download as Image (PNG)</span>
             </button>
+            <button onclick="downloadHtml()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-file-code"></i>
+                <span>Download Updated HTML</span>
+            </button>
             <button onclick="resetDefaults()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium py-2 px-4 rounded-xl transition text-sm">
                 Reset to Default
             </button>
@@ -348,31 +272,27 @@
     </div>
 
     <!-- FLYER PREVIEW CONTAINER -->
-    <!-- The preview area allows scrolling if the window is too small, but the flyer itself scales responsively -->
-    <div class="flex-1 bg-slate-950 overflow-auto flex items-start justify-center p-2 sm:p-4 md:p-8">
-        
-        <!-- THE RESPONSIVE FLYER CONTAINER (max 800px, but scales down on mobile) -->
-        <div id="flyer-container" class="min-h-[1131px] bg-white text-slate-900 shadow-2xl relative overflow-hidden flex flex-col mx-auto shrink-0 font-sans" style="width: 100%; max-width: 800px;">
-            
+    <!-- Flyer is a fixed US Legal page (816x1344px); #flyer-scaler + JS scale it to fit the viewport -->
+    <div id="preview-area" class="flex-1 bg-slate-950 overflow-auto flex items-start justify-center p-2 sm:p-4 md:p-6">
+        <div id="flyer-scaler">
+        <div id="flyer-container" class="bg-white text-slate-900 shadow-2xl relative overflow-hidden flex flex-col font-sans" style="">
+
             <!-- Decorative Backgrounds -->
-            <div class="absolute top-0 right-0 w-full h-80 pointer-events-none overflow-hidden z-0">
-                <div class="absolute -right-20 -top-20 w-[400px] h-[400px] bg-emerald-100/50 rounded-full blur-2xl"></div>
-                <div class="absolute right-40 -top-10 w-[300px] h-[300px] bg-purple-100/50 rounded-full blur-3xl"></div>
-            </div>
+            <!-- (radial gradients instead of CSS blur so print/PDF output stays clean) -->
+            <div class="absolute top-0 left-0 w-full h-72 pointer-events-none z-0" style="background: radial-gradient(circle at 105% -10%, rgba(167,243,208,0.55) 0, rgba(167,243,208,0) 45%), radial-gradient(circle at 65% -15%, rgba(233,213,255,0.6) 0, rgba(233,213,255,0) 40%);"></div>
+            <div class="absolute left-0 bottom-0 w-full h-72 pointer-events-none z-0" style="background: radial-gradient(circle at -5% 105%, rgba(233,213,255,0.5) 0, rgba(233,213,255,0) 45%);"></div>
 
             <!-- 1. HEADER SECTION -->
-            <div class="relative z-10 px-10 py-8 flex justify-between items-center border-b-2 border-purple-50">
-                <div class="flex items-center space-x-4">
-                    <img src="https://poojakarnik.com/images/logo.png" alt="Logo" class="h-20 w-auto object-contain" onerror="this.style.display='none'">
-                </div>
+            <div class="relative z-10 px-12 pt-8 pb-5 flex justify-between items-center border-b-2 border-purple-100">
+                <img src="https://poojakarnik.com/images/logo.png" alt="Logo" class="h-24 w-auto object-contain" onerror="this.style.display='none'">
                 <div class="text-right">
-                    <h2 id="out-practitioner" class="font-heading font-extrabold text-3xl text-purple-950 tracking-tight leading-tight">Pooja Karnik, B.H.M.S.</h2>
-                    <p id="out-specialty" class="text-base font-semibold text-purple-700 mb-2">(Klassiek Homeopaat)</p>
-                    <div class="flex flex-col items-end text-sm text-slate-700 font-medium space-y-1">
+                    <h2 id="out-practitioner" class="font-heading font-extrabold text-4xl text-purple-950 tracking-tight leading-tight">Pooja Karnik, B.H.M.S.</h2>
+                    <p id="out-specialty" class="text-lg font-semibold text-purple-700 mb-2">(Klassiek Homeopaat)</p>
+                    <div class="flex items-center justify-end gap-5 text-sm text-slate-700 font-medium">
                         <span class="flex items-center"><i class="fa-solid fa-phone text-purple-600 mr-2"></i><span id="out-phone">(0)645639455</span></span>
                         <span class="flex items-center">
                             <i class="fa-solid fa-globe text-purple-600 mr-2"></i>
-                            <a id="out-website-link" href="https://www.poojakarnik.com" target="_blank" class="hover:text-purple-600 hover:underline">
+                            <a id="out-website-link" href="https://www.poojakarnik.com" target="_blank">
                                 <span id="out-website">www.poojakarnik.com</span>
                             </a>
                         </span>
@@ -380,113 +300,92 @@
                 </div>
             </div>
 
-            <!-- 2. HERO / MAIN SECTION (2 Columns) -->
-            <div class="relative z-10 px-10 py-8 flex gap-8">
+            <!-- 2. HERO / MAIN SECTION (2 Columns, fills remaining height) -->
+            <div class="relative z-10 px-12 pt-7 pb-6 flex gap-8 flex-1 min-h-0">
                 <!-- Left: Text & Registration -->
-                <div class="flex-1 flex flex-col justify-between space-y-6">
+                <div class="flex-1 flex flex-col">
                     <div>
-                        <h3 id="out-title1" class="font-heading font-bold text-3xl text-purple-900 leading-tight">Homeopathy Nascholing Training</h3>
-                        <h4 id="out-title2" class="font-heading font-bold text-2xl text-purple-800 leading-tight mb-4">Session in English</h4>
-                        
-                        <p id="out-topic" class="text-xl font-bold text-slate-800 leading-snug mb-3">
-                            Biochemic Tissue Salts in Rheumatic conditions
-                        </p>
-                        
-                        <p id="out-accreditation" class="text-sm font-semibold text-purple-700 bg-purple-50 py-1.5 px-3 rounded-lg inline-block border border-purple-200">
-                            Also receive NVKH Accreditation Points
-                        </p>
+                        <h3 id="out-title1" class="font-heading font-extrabold text-[40px] text-purple-900 leading-[1.1]">Homeopathy Nascholing Training</h3>
+                        <h4 id="out-title2" class="font-heading font-bold text-2xl text-purple-700 leading-tight mt-2 mb-5">Session in English</h4>
+                        <div class="border-l-4 border-amber-400 pl-4 mb-4">
+                            <p id="out-topic" class="text-2xl font-bold text-slate-800 leading-snug">Homeopathy in Thyroid Disorders</p>
+                        </div>
+                        <p id="out-accreditation" class="text-sm font-semibold text-purple-700 bg-purple-50 py-1.5 px-3 rounded-lg inline-block border border-purple-200">Receive NVKH, NOKH, NWP, BKHD Accreditation Points</p>
                     </div>
 
                     <!-- Register Block -->
-                    <div class="flex items-center space-x-5 mt-auto pt-6 border-t border-slate-100">
-                        <div>
-                            <h4 class="font-heading font-black text-2xl text-purple-950 tracking-wide uppercase leading-tight">Register <br>Now</h4>
-                            <a id="out-qr-link" href="https://eventix.shop/adkrvjjb" target="_blank" class="text-xs font-bold text-purple-600 underline hover:text-purple-800 break-all block mt-2 max-w-[200px]">
-                                https://eventix.shop/adkrvjjb
-                            </a>
+                    <div class="mt-6 flex-1 bg-gradient-to-br from-purple-50 to-white border border-purple-200 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                        <h4 class="font-heading font-black text-3xl text-purple-950 tracking-wide uppercase leading-tight">Register Now</h4>
+                        <p class="text-sm text-slate-500 mt-1 mb-3">Scan the QR code or visit:</p>
+                        <div class="bg-white p-2.5 rounded-2xl border border-slate-200">
+                            <img id="out-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&amp;data=https%3A%2F%2Feventix.shop%2Fadkrvjjb&amp;margin=0" alt="QR Code" crossorigin="anonymous" class="w-40 h-40 object-contain">
                         </div>
-                        <div class="bg-white p-2 rounded-2xl shadow-md border border-slate-200">
-                            <img id="out-qr-img" src="" alt="QR Code" class="w-24 h-24 object-contain">
-                        </div>
+                        <a id="out-qr-link" href="https://eventix.shop/adkrvjjb" target="_blank" class="text-sm font-bold text-purple-700 underline break-all block mt-3">https://eventix.shop/adkrvjjb</a>
                     </div>
                 </div>
 
                 <!-- Right: Photo & Bio -->
-                <div class="w-[290px] flex-shrink-0 flex flex-col justify-start items-center space-y-5">
+                <div class="w-[290px] flex-shrink-0 flex flex-col justify-start items-center space-y-4">
                     <div class="rounded-full p-2 bg-gradient-to-tr from-amber-400 via-purple-600 to-emerald-400 shadow-xl flex-shrink-0" style="width: 256px; height: 256px;">
                         <div class="rounded-full overflow-hidden bg-white relative" style="width: 100%; height: 100%;">
-                            <!-- Using absolute inset-0 with strict sizing prevents html2canvas from squishing flex children -->
-                            <img id="out-photo" src="https://poojakarnik.com/images/pooja_karnik.jpg" alt="Dr. Pooja Karnik" 
-                                onerror="this.src='https://placehold.co/300x300/4a154b/ffffff?text=Photo'" 
-                                class="absolute inset-0 w-full h-full object-cover object-top" style="object-fit: cover;">
+                            <img id="out-photo" src="https://poojakarnik.com/images/pooja_karnik.jpg" alt="Dr. Pooja Karnik" crossorigin="anonymous" onerror="this.src='https://placehold.co/300x300/4a154b/ffffff?text=Photo'" class="absolute inset-0 w-full h-full object-cover object-top" style="object-fit: cover;">
                         </div>
                     </div>
-                    
-                    <!-- Speaker Bio -->
                     <div class="text-center px-1">
-                        <p id="out-bio" class="text-[13px] leading-relaxed text-slate-700 font-medium">
-                            Dr Pooja Karnik is a dedicated homeopath with a comprehensive knowledge of homeopathic remedies, pathology, medicine, anatomy, and physiology. With experience treating patients across age groups and nationalities—including in the US, India, UK, and the Netherlands—She has developed a nuanced understanding of diverse healthcare needs. Known for my strong interpersonal skills, she strives to create a caring, empathetic environment where patients feel truly heard and supported.
+                        <p id="out-bio" class="text-[13px] leading-relaxed text-slate-700 font-medium">Dr Pooja Karnik is a dedicated homeopath with a comprehensive knowledge of homeopathic remedies, pathology, medicine, anatomy, and physiology. With experience treating patients across age groups and nationalities—including in the US, India, UK, and the Netherlands—She has developed a nuanced understanding of diverse healthcare needs. Known for my strong interpersonal skills, she strives to create a caring, empathetic environment where patients feel truly heard and supported.</p>
+                        <p class="mt-3 pt-3 border-t border-purple-100 text-[13px] font-medium text-slate-600">
+                            Check her past trainings at<br>
+                            <a id="out-past-link" href="https://poojakarnik.com/trainings.html" target="_blank" class="font-bold text-purple-700 underline">https://poojakarnik.com/trainings.html</a>
                         </p>
+
                     </div>
                 </div>
             </div>
 
             <!-- 3. WHAT TO EXPECT SECTION (Grid) -->
-            <div class="relative z-10 px-10 py-4 mb-4">
-                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm">
-                    <h4 class="font-heading font-bold text-lg text-purple-950 mb-4 border-b border-slate-200 pb-2">What to Expect in the Session:</h4>
-                    <ul class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm text-slate-700" id="out-highlights">
-                        <!-- Bullet points injected here via JS -->
-                    </ul>
+            <div class="relative z-10 px-12 pb-5">
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-5 shadow-sm">
+                    <h4 class="font-heading font-bold text-lg text-purple-950 mb-3 border-b border-slate-200 pb-2">What to Expect in the Session:</h4>
+                    <ul class="grid grid-cols-2 gap-x-8 gap-y-3 text-[13.5px] text-slate-700" id="out-highlights"></ul>
                 </div>
             </div>
 
             <!-- 4. EVENT DETAILS SECTION -->
-            <div class="relative z-10 px-10 mb-8">
-                <div class="bg-gradient-to-br from-purple-900 to-slate-900 text-white rounded-2xl p-6 shadow-xl border border-purple-800">
+            <div class="relative z-10 px-12 pb-6">
+                <div class="bg-gradient-to-br from-purple-900 to-slate-900 text-white rounded-2xl px-6 py-5 shadow-xl border border-purple-800">
                     <div class="grid grid-cols-3 gap-6">
-                        
-                        <!-- Date & Time -->
                         <div class="flex flex-col justify-center space-y-1">
-                            <p class="font-heading font-bold text-2xl text-amber-400"><span id="out-date">Sat 4 Oct, 2025</span></p>
+                            <p class="font-heading font-bold text-2xl text-amber-400"><span id="out-date">Sat 12 DEC, 2025</span></p>
                             <p class="font-medium text-purple-100 text-lg"><span id="out-time">10:00 AM to 5:00 PM</span></p>
                         </div>
-
-                        <!-- Location -->
                         <div class="flex items-start space-x-3 border-l border-purple-700/50 pl-6">
                             <i class="fa-solid fa-location-dot text-amber-400 mt-1 text-xl flex-shrink-0"></i>
                             <div>
                                 <span class="text-purple-300 font-bold block text-xs uppercase tracking-wider mb-1">Location / Venue</span>
-                                <span id="out-venue" class="font-semibold text-white text-base leading-snug block">Bilderdijkhof 1, 1422 DT Uithoorn</span>
+                                <span id="out-venue" class="font-semibold text-white text-base leading-snug block">Uithoorn / Mijdrecht / Amstelveen TBD</span>
                             </div>
                         </div>
-
-                        <!-- Fee -->
                         <div class="flex items-start space-x-3 border-l border-purple-700/50 pl-6">
                             <i class="fa-solid fa-euro-sign text-amber-400 mt-1 text-xl flex-shrink-0"></i>
                             <div>
                                 <span class="text-purple-300 font-bold block text-xs uppercase tracking-wider mb-1">Investment / Fee</span>
-                                <span id="out-price" class="font-semibold text-white text-base block mb-0.5">95 Eur per person</span>
+                                <span id="out-price" class="font-semibold text-white text-base block mb-0.5">As Per Ticket</span>
                                 <span id="out-note" class="text-xs text-amber-300 block italic font-medium">*Tea and Coffee provided</span>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
 
             <!-- 5. FOOTER SECTION -->
-            <div class="relative z-10 mt-auto bg-slate-100 border-t border-slate-200 px-10 py-6 flex items-center justify-between">
-                <!-- Dynamic Logos -->
-                <div id="out-footer-logos" class="flex items-center space-x-6 flex-wrap">
-                    <!-- Populated dynamically -->
-                </div>
-                <!-- Nascholing Note -->
+            <div class="relative z-10 bg-slate-100 border-t border-slate-200 px-12 py-5 flex items-center justify-between">
+                <div id="out-footer-logos" class="flex items-center space-x-6 flex-wrap"></div>
                 <div class="text-right flex-shrink-0">
-                    <p class="font-bold text-sm text-slate-600">Also get NVKH Accreditation Points - <span class="text-purple-800">Nascholing</span></p>
+                    <p id="out-footer-note" class="font-bold text-sm text-purple-800">NVKH, NOKH, NWP, BKHD Accreditation Points - Nascholing</p>
                 </div>
             </div>
 
+        </div>
         </div>
     </div>
 
@@ -494,9 +393,17 @@
     <script>
         // Initial default state for footer logos
         let footerLogos = [
-            { id: 1, url: 'https://poojakarnik.com/images/affiliation5.png', alt: 'Affiliation 5' },
-            { id: 2, url: 'https://poojakarnik.com/images/affiliation6.png', alt: 'Affiliation 6' }
-        ];
+          {
+                    "id": 1,
+                    "url": "https://poojakarnik.com/images/affiliation5.png",
+                    "alt": "Affiliation 5"
+          },
+          {
+                    "id": 2,
+                    "url": "https://poojakarnik.com/images/affiliation6.png",
+                    "alt": "Affiliation 6"
+          }
+];
 
         function renderLogoInputs() {
             const container = document.getElementById('logo-inputs-container');
@@ -546,6 +453,7 @@
             }
             footerLogos.forEach(logo => {
                 const img = document.createElement('img');
+                img.crossOrigin = 'anonymous';
                 img.src = logo.url;
                 img.alt = logo.alt;
                 img.className = 'h-12 object-contain max-w-[160px] mix-blend-multiply'; // mix-blend-multiply removes white backgrounds if needed
@@ -566,12 +474,30 @@
             }
         }
 
+        // Scale the fixed 816x1344 Legal page to fit the preview area
+        const FLYER_W = 816, FLYER_H = 1344;
+        function fitFlyer() {
+            const area = document.getElementById('preview-area');
+            const scaler = document.getElementById('flyer-scaler');
+            const flyer = document.getElementById('flyer-container');
+            const cs = getComputedStyle(area);
+            const availW = area.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            const scale = Math.min(1, availW / FLYER_W);
+            flyer.style.transform = `scale(${scale})`;
+            scaler.style.width = FLYER_W * scale + 'px';
+            scaler.style.height = FLYER_H * scale + 'px';
+        }
+        window.addEventListener('resize', fitFlyer);
+        window.addEventListener('beforeprint', () => { document.getElementById('flyer-container').style.transform = 'none'; });
+        window.addEventListener('afterprint', fitFlyer);
+
         function downloadAsImage() {
             const flyerElement = document.getElementById('flyer-container');
             const originalBoxShadow = flyerElement.style.boxShadow;
             
-            // Temporarily remove shadow for clean export edge
+            // Temporarily remove shadow and scaling for a clean full-size export
             flyerElement.style.boxShadow = 'none';
+            flyerElement.style.transform = 'none';
 
             html2canvas(flyerElement, {
                 scale: 2, // High resolution for A4 printing
@@ -580,6 +506,7 @@
             }).then(canvas => {
                 // Restore shadow
                 flyerElement.style.boxShadow = originalBoxShadow;
+                fitFlyer();
                 
                 const image = canvas.toDataURL("image/png");
                 const link = document.createElement('a');
@@ -588,9 +515,49 @@
                 link.click();
             }).catch(err => {
                 flyerElement.style.boxShadow = originalBoxShadow;
+                fitFlyer();
                 console.error("Error generating image: ", err);
                 alert("Could not generate image. Check console for details.");
             });
+        }
+
+        // Save a copy of this page with the current form values and footer logos baked in as the new defaults
+        function downloadHtml() {
+            updateFlyer();
+            const clone = document.documentElement.cloneNode(true);
+
+            // Persist typed values (the value attribute is what reloads)
+            clone.querySelectorAll('#flyer-form input').forEach(el => {
+                const live = document.getElementById(el.id);
+                if (live) el.setAttribute('value', live.value);
+            });
+            const bio = clone.querySelector('#in-bio');
+            if (bio) bio.textContent = document.getElementById('in-bio').value;
+
+            // Drop runtime-only artifacts: Tailwind-generated styles, preview scaling, rendered logo/bullet nodes
+            clone.querySelectorAll('style:not(#app-style)').forEach(el => el.remove());
+            const flyer = clone.querySelector('#flyer-container');
+            if (flyer) flyer.style.transform = '';
+            const scaler = clone.querySelector('#flyer-scaler');
+            if (scaler) scaler.removeAttribute('style');
+            const logos = clone.querySelector('#out-footer-logos');
+            if (logos) logos.innerHTML = '';
+            const bullets = clone.querySelector('#out-highlights');
+            if (bullets) bullets.innerHTML = '';
+            const logoInputs = clone.querySelector('#logo-inputs-container');
+            if (logoInputs) logoInputs.innerHTML = '';
+
+            let html = '<!DOCTYPE html>\n' + clone.outerHTML;
+            // Bake current footer logos in as the initial list
+            const logosJson = JSON.stringify(footerLogos.map(l => ({ id: l.id, url: l.url, alt: l.alt })), null, 12);
+            html = html.replace(/let footerLogos = \[[\s\S]*?\];/, () => 'let footerLogos = ' + logosJson + ';');
+
+            const blob = new Blob([html], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.download = 'TrainingFlyerGenerator.html';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function updateFlyer() {
@@ -608,6 +575,7 @@
             document.getElementById('out-title2').innerText = document.getElementById('in-title2').value;
             document.getElementById('out-topic').innerText = document.getElementById('in-topic').value;
             document.getElementById('out-accreditation').innerText = document.getElementById('in-accreditation').value;
+            document.getElementById('out-footer-note').innerText = document.getElementById('in-footer-note').value;
 
             // Schedule & Venue
             document.getElementById('out-date').innerText = document.getElementById('in-date').value;
@@ -650,6 +618,7 @@
             document.getElementById('in-title2').value = "Session in English";
             document.getElementById('in-topic').value = "Biochemic Tissue Salts in Rheumatic conditions";
             document.getElementById('in-accreditation').value = "Also receive NVKH Accreditation Points";
+            document.getElementById('in-footer-note').value = "Also get NVKH Accreditation Points - Nascholing";
             document.getElementById('in-date').value = "Sat 4 Oct, 2025";
             document.getElementById('in-time').value = "10:00 AM to 5:00 PM";
             document.getElementById('in-venue').value = "Bilderdijkhof 1, 1422 DT Uithoorn";
@@ -686,6 +655,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             renderLogoInputs();
             updateFlyer();
+            fitFlyer();
 
             const formInputs = document.querySelectorAll('#flyer-form input');
             formInputs.forEach(input => {
@@ -693,5 +663,5 @@
             });
         });
     </script>
-</body>
-</html>
+
+</body></html>
