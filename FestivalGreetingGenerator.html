@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Pooja Karnik Festival Greeting Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas for saving as image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], heading: ['Outfit', 'sans-serif'] } } } }
+    </script>
+    <style>
+        /* The greeting is built at 1080x1350 (4:5 portrait, the best size for a WhatsApp image)
+           and scaled uniformly for preview. The top ~15% is decoration only because WhatsApp
+           crops the upper part of tall images in the chat list. */
+        #greeting {
+            width: 1080px;
+            height: 1350px;
+            transform-origin: top left;
+            --ink: #5b1f12;
+            --accent: #9b2c1c;
+            --card-bg: rgba(255, 255, 255, .86);
+            --card-ink: #3b1a12;
+            --card-line: rgba(155, 44, 28, .25);
+        }
+        #greeting.dark {
+            --ink: #ffffff;
+            --card-bg: rgba(15, 10, 40, .55);
+            --card-ink: #ffffff;
+            --card-line: rgba(255, 255, 255, .3);
+        }
+        #greeting .layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        #wish { font-family: 'Great Vibes', cursive; color: var(--accent); line-height: 1.05; font-weight: 400; }
+        #wish-wrap { height: 330px; }
+        #out-message { font-family: 'Cormorant Garamond', serif; color: var(--ink); font-weight: 600; font-size: 44px; line-height: 1.25; }
+        #out-from { font-family: 'Cormorant Garamond', serif; color: var(--accent); font-weight: 700; font-size: 36px; line-height: 1.2; }
+        #out-date { font-family: 'Outfit', sans-serif; color: var(--ink); letter-spacing: .18em; text-transform: uppercase; font-size: 28px; font-weight: 600; }
+        .orn { height: 2px; width: 90px; background: var(--accent); opacity: .6; }
+        #contact-card { background: var(--card-bg); color: var(--card-ink); border: 2px solid var(--card-line); border-radius: 28px; font-family: 'Inter', sans-serif; }
+        #contact-card .ci { color: var(--accent); }
+        #greeting.dark #contact-card .ci { color: #fde68a; }
+        .safe-line { position: absolute; left: 0; right: 0; border-top: 4px dashed rgba(239, 68, 68, .9); z-index: 50; pointer-events: none; }
+        .safe-line span { position: absolute; right: 12px; top: 6px; background: rgba(239, 68, 68, .9); color: #fff; font: 600 22px Inter, sans-serif; padding: 2px 12px; border-radius: 8px; }
+        .thumb { aspect-ratio: 4/5; object-fit: cover; }
+        .pick { outline: 3px solid transparent; transition: outline-color .15s; }
+        .pick.active { outline-color: #a855f7; }
+        ::-webkit-scrollbar { height: 6px; width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
+
+<div class="flex flex-col lg:flex-row lg:h-screen">
+
+    <!-- CONTROLS -->
+    <div class="lg:w-[430px] lg:h-screen lg:overflow-y-auto shrink-0 bg-slate-900 lg:border-r border-slate-700 p-4 space-y-4 order-2 lg:order-1">
+        <div class="flex items-center space-x-3 pb-3 border-b border-slate-700">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl border border-amber-500/30"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <div>
+                <h1 class="font-heading font-bold text-lg text-white">Festival Greeting Studio</h1>
+                <p class="text-xs text-slate-400">Made for WhatsApp &middot; 1080 &times; 1350</p>
+            </div>
+        </div>
+
+        <div id="file-warning" class="hidden text-xs bg-amber-500/15 border border-amber-500/40 text-amber-200 rounded-lg p-3">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+            You opened this as a local file, so the browser blocks saving the image. Open it from the website (or run <code class="bg-slate-800 px-1 rounded">python3 -m http.server</code> in this folder) to use Download / Share.
+        </div>
+
+        <!-- Festival presets -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-2">
+            <h2 class="text-xs font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-star mr-1"></i> Festival (fills everything in)</h2>
+            <div id="preset-chips" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- Wording -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-3 text-sm" id="text-form">
+            <h2 class="text-xs font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-pen-nib mr-1"></i> Wording</h2>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Wish (stylish script)</label>
+                <input type="text" id="in-wish" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500" value="Happy Diwali">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Date</label>
+                <div class="flex gap-2">
+                    <input type="text" id="in-date" class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500" placeholder="e.g. 1 November 2026">
+                    <input type="date" id="in-datepick" class="w-[8.5rem] bg-slate-900 border border-slate-700 rounded-lg px-2 text-white text-xs focus:outline-none" title="Pick a date">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Message (one or two lines)</label>
+                <textarea id="in-message" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500">Hoping Diwali brings wealth, health, and happiness to you.</textarea>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">From</label>
+                <input type="text" id="in-from" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500" value="From Dr. Pooja Karnik’s Homeopathy Consulting">
+            </div>
+        </div>
+
+        <!-- Background -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-2">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xs font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-image mr-1"></i> Background</h2>
+                <label class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Upload
+                    <input type="file" accept="image/*" class="hidden" id="up-bg"></label>
+            </div>
+            <div id="bg-picker" class="flex gap-2 overflow-x-auto pb-2"></div>
+        </div>
+
+        <!-- Foreground -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-2">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xs font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-layer-group mr-1"></i> Foreground</h2>
+                <label class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Upload
+                    <input type="file" accept="image/*" class="hidden" id="up-fg"></label>
+            </div>
+            <div id="fg-picker" class="flex gap-2 overflow-x-auto pb-2"></div>
+        </div>
+
+        <!-- Look -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-sm space-y-3">
+            <h2 class="text-xs font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-palette mr-1"></i> Look</h2>
+            <div class="flex items-center gap-3">
+                <label class="text-xs text-slate-300">Wish colour</label>
+                <input type="color" id="in-accent" class="h-8 w-12 bg-transparent rounded cursor-pointer">
+                <label class="text-xs text-slate-300 ml-auto">Text</label>
+                <select id="in-theme" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs">
+                    <option value="light">Dark text (light bg)</option>
+                    <option value="dark">White text (dark bg)</option>
+                </select>
+            </div>
+            <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" id="in-safe"> Show WhatsApp “top gets cut” guide</label>
+        </div>
+
+        <!-- Contact -->
+        <details class="bg-slate-800 p-3 rounded-xl border border-slate-700 text-sm">
+            <summary class="text-xs font-bold text-amber-400 uppercase tracking-wider cursor-pointer"><i class="fa-solid fa-address-card mr-1"></i> Contact details</summary>
+            <div class="space-y-3 mt-3" id="contact-form">
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="block text-xs text-slate-300 mb-1">Phone</label>
+                        <input type="text" id="in-phone" value="+31 645639455" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"></div>
+                    <div><label class="block text-xs text-slate-300 mb-1">Website</label>
+                        <input type="text" id="in-website" value="www.poojakarnik.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"></div>
+                </div>
+                <div><label class="block text-xs text-slate-300 mb-1">Email (leave empty to hide)</label>
+                    <input type="text" id="in-email" value="advice@poojakarnik.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"></div>
+                <div><label class="block text-xs text-slate-300 mb-1">Uithoorn address</label>
+                    <input type="text" id="in-addr1" value="Antoon Coolenlaan 41, 1422 GN Uithoorn" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"></div>
+                <div><label class="block text-xs text-slate-300 mb-1">Aalsmeer address</label>
+                    <input type="text" id="in-addr2" value="Stationsweg 38, 1431 EG Aalsmeer" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"></div>
+            </div>
+        </details>
+
+        <!-- Actions -->
+        <div class="space-y-3 pb-8">
+            <button id="btn-share" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-brands fa-whatsapp text-xl"></i><span>Share to WhatsApp</span>
+            </button>
+            <button id="btn-download" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-image"></i><span>Download as Image (PNG)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div id="preview-area" class="flex-1 bg-slate-950 lg:overflow-auto flex items-start justify-center p-3 lg:p-6 order-1 lg:order-2">
+        <div id="scaler" class="relative">
+            <div id="greeting" class="relative overflow-hidden bg-white shadow-2xl">
+                <img id="bg-img" class="layer" alt="">
+                <img id="fg-img" class="layer" alt="" style="z-index:2">
+
+                <!-- Content -->
+                <div class="absolute inset-0 z-10 flex flex-col items-center text-center" style="padding: 250px 170px 70px;">
+                    <!-- Wish -->
+                    <div id="wish-wrap" class="w-full flex items-center justify-center">
+                        <div id="wish" class="w-full">Happy Diwali</div>
+                    </div>
+
+                    <!-- Date -->
+                    <div id="date-row" class="flex items-center gap-5 mt-2">
+                        <div class="orn"></div><div id="out-date">1 November 2026</div><div class="orn"></div>
+                    </div>
+
+                    <!-- Message -->
+                    <p id="out-message" class="mt-8">Hoping Diwali brings wealth, health, and happiness to you.</p>
+                    <p id="out-from" class="mt-6">From Dr. Pooja Karnik’s Homeopathy Consulting</p>
+
+                    <!-- Contact card -->
+                    <div id="contact-card" class="mt-auto w-full px-8 py-6">
+                        <div class="flex items-center gap-6">
+                            <img src="images/logo.png" alt="Dr Pooja" class="h-[100px] w-auto object-contain shrink-0" onerror="this.src='https://poojakarnik.com/images/logo.png'">
+                            <div class="flex-1 text-left space-y-1.5 text-[26px] font-medium leading-tight">
+                                <div class="flex items-center"><i class="fa-solid fa-phone ci w-9 text-[24px]"></i><span id="out-phone"></span></div>
+                                <div class="flex items-center"><i class="fa-solid fa-globe ci w-9 text-[24px]"></i><span id="out-website"></span></div>
+                                <div id="email-row" class="flex items-center"><i class="fa-solid fa-envelope ci w-9 text-[24px]"></i><span id="out-email"></span></div>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 grid grid-cols-2 gap-6 text-left text-[22px] leading-snug" style="border-top: 2px solid var(--card-line)">
+                            <div class="flex items-start"><i class="fa-solid fa-location-dot ci w-8 mt-1"></i><span id="out-addr1"></span></div>
+                            <div class="flex items-start"><i class="fa-solid fa-location-dot ci w-8 mt-1"></i><span id="out-addr2"></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="safe-line" class="safe-line hidden" style="top: 202px"><span>WhatsApp may crop above this line</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---- Festival library. Images live in images/festivities/{background,foreground}/<id>.svg
+    const FESTIVALS = [
+        { id: 'newyear',       label: 'New Year',         wish: 'Happy New Year',        msg: 'May the year ahead bring you good health, happiness and peace.', theme: 'dark',  accent: '#fde68a' },
+        { id: 'holi',          label: 'Holi',             wish: 'Happy Holi',            msg: 'May your life be filled with the colours of joy, health and love.', theme: 'light', accent: '#be185d' },
+        { id: 'gudipadwa',     label: 'Gudi Padwa',       wish: 'Happy Gudi Padwa',      msg: 'Wishing you a healthy and prosperous new year ahead.', theme: 'light', accent: '#b45309' },
+        { id: 'akshaytrutiya', label: 'Akshaya Tritiya',  wish: 'Happy Akshaya Tritiya', msg: 'May good health and prosperity stay with you forever.', theme: 'light', accent: '#a16207' },
+        { id: 'dasara',        label: 'Dasara',           wish: 'Happy Dasara',          msg: 'May good triumph over evil and bring health and joy to your home.', theme: 'light', accent: '#9a3412' },
+        { id: 'diwali',        label: 'Diwali',           wish: 'Happy Diwali',          msg: 'Hoping Diwali brings wealth, health, and happiness to you.', theme: 'light', accent: '#9b2c1c' },
+        { id: 'republic',      label: 'Republic Day',     wish: 'Happy Republic Day',    msg: 'Proud to celebrate the spirit of India with you.', theme: 'light', accent: '#1e3a8a' },
+        { id: 'independence',  label: 'Independence Day', wish: 'Happy Independence Day',msg: 'Wishing you freedom, good health and happiness.', theme: 'light', accent: '#1e3a8a' },
+        { id: 'ganesh',        label: 'Ganesh Chaturthi', wish: 'Happy Ganesh Chaturthi',msg: 'May Lord Ganesha remove all obstacles and bless you with health and happiness.', theme: 'light', accent: '#be123c' },
+        { id: 'navratri',      label: 'Navratri',         wish: 'Happy Navratri',        msg: 'Wishing you nine nights of joy, devotion and good health.', theme: 'dark',  accent: '#fde047' }
+    ];
+    const BG_DIR = 'images/festivities/background/';
+    const FG_DIR = 'images/festivities/foreground/';
+
+    const $ = id => document.getElementById(id);
+    const greeting = $('greeting');
+    let bgSrc = '', fgSrc = '';
+
+    // ---- Pickers
+    function buildPickers() {
+        $('preset-chips').innerHTML = FESTIVALS.map(f =>
+            `<button data-id="${f.id}" class="text-xs bg-slate-700 hover:bg-amber-600 hover:text-slate-900 px-3 py-1.5 rounded-full transition">${f.label}</button>`).join('');
+        $('preset-chips').querySelectorAll('button').forEach(b => b.onclick = () => applyPreset(b.dataset.id));
+
+        $('bg-picker').innerHTML = FESTIVALS.map(f =>
+            `<button data-id="${f.id}" title="${f.label}" class="pick shrink-0 w-20 rounded-lg overflow-hidden bg-slate-900"><img class="thumb w-full" src="${BG_DIR}${f.id}.svg" alt="${f.label}"></button>`).join('');
+        $('bg-picker').querySelectorAll('button').forEach(b => b.onclick = () => setBackground(BG_DIR + b.dataset.id + '.svg', b.dataset.id, true));
+
+        $('fg-picker').innerHTML =
+            `<button data-id="" title="None" class="pick shrink-0 w-20 rounded-lg bg-slate-900 text-xs text-slate-400 flex items-center justify-center" style="aspect-ratio:4/5">None</button>` +
+            FESTIVALS.map(f =>
+                `<button data-id="${f.id}" title="${f.label}" class="pick shrink-0 w-20 rounded-lg overflow-hidden" style="background:repeating-conic-gradient(#334155 0 25%,#1e293b 0 50%) 0 0/16px 16px"><img class="thumb w-full" src="${FG_DIR}${f.id}.svg" alt="${f.label}"></button>`).join('');
+        $('fg-picker').querySelectorAll('button').forEach(b => b.onclick = () => setForeground(b.dataset.id ? FG_DIR + b.dataset.id + '.svg' : '', b.dataset.id));
+    }
+
+    function markActive(containerId, id) {
+        $(containerId).querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.id === (id || '')));
+    }
+
+    function setBackground(src, id, applyTheme) {
+        bgSrc = src;
+        markActive('bg-picker', id);
+        if (applyTheme && id) {
+            const f = FESTIVALS.find(x => x.id === id);
+            if (f) { $('in-theme').value = f.theme; $('in-accent').value = f.accent; }
+        }
+        render();
+    }
+
+    function setForeground(src, id) {
+        fgSrc = src;
+        markActive('fg-picker', id);
+        render();
+    }
+
+    function applyPreset(id) {
+        const f = FESTIVALS.find(x => x.id === id);
+        if (!f) return;
+        $('in-wish').value = f.wish;
+        $('in-message').value = f.msg;
+        $('in-theme').value = f.theme;
+        $('in-accent').value = f.accent;
+        bgSrc = BG_DIR + id + '.svg';
+        fgSrc = FG_DIR + id + '.svg';
+        markActive('bg-picker', id);
+        markActive('fg-picker', id);
+        render();
+    }
+
+    function readUpload(inputId, cb) {
+        $(inputId).addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) cb(URL.createObjectURL(file));
+        });
+    }
+
+    // ---- Render
+    function fitWish() {
+        const el = $('wish');
+        let size = 190;
+        el.style.fontSize = size + 'px';
+        // allow at most two lines inside the 330px band
+        while ((el.scrollHeight > $('wish-wrap').clientHeight - 10) && size > 70) {
+            size -= 6;
+            el.style.fontSize = size + 'px';
+        }
+    }
+
+    function render() {
+        $('wish').innerText = $('in-wish').value;
+        const date = $('in-date').value.trim();
+        $('out-date').innerText = date;
+        $('date-row').style.display = date ? 'flex' : 'none';
+        $('out-message').innerText = $('in-message').value;
+        $('out-from').innerText = $('in-from').value;
+        $('out-from').style.display = $('in-from').value.trim() ? 'block' : 'none';
+        $('out-phone').innerText = $('in-phone').value;
+        $('out-website').innerText = $('in-website').value;
+        $('out-email').innerText = $('in-email').value;
+        $('email-row').style.display = $('in-email').value.trim() ? 'flex' : 'none';
+        $('out-addr1').innerText = $('in-addr1').value;
+        $('out-addr2').innerText = $('in-addr2').value;
+
+        greeting.classList.toggle('dark', $('in-theme').value === 'dark');
+        greeting.style.setProperty('--accent', $('in-accent').value);
+        $('safe-line').classList.toggle('hidden', !$('in-safe').checked);
+
+        const bg = $('bg-img'), fg = $('fg-img');
+        bg.style.display = bgSrc ? 'block' : 'none';
+        fg.style.display = fgSrc ? 'block' : 'none';
+        if (bgSrc && bg.getAttribute('src') !== bgSrc) bg.setAttribute('src', bgSrc);
+        if (fgSrc && fg.getAttribute('src') !== fgSrc) fg.setAttribute('src', fgSrc);
+
+        fitWish();
+    }
+
+    // ---- Scale preview to the viewport
+    const GW = 1080, GH = 1350;
+    function fit() {
+        const area = $('preview-area');
+        const cs = getComputedStyle(area);
+        const availW = area.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        let scale = availW / GW;
+        if (window.matchMedia('(min-width:1024px)').matches) {
+            scale = Math.min(scale, (window.innerHeight - 48) / GH);
+        }
+        greeting.style.transform = `scale(${scale})`;
+        $('scaler').style.width = GW * scale + 'px';
+        $('scaler').style.height = GH * scale + 'px';
+    }
+
+    // ---- Export
+    function capture() {
+        const prevTransform = greeting.style.transform;
+        const prevShadow = greeting.style.boxShadow;
+        const guide = $('safe-line');
+        const guideWasHidden = guide.classList.contains('hidden');
+        greeting.style.transform = 'none';
+        greeting.style.boxShadow = 'none';
+        guide.classList.add('hidden');
+        return html2canvas(greeting, { scale: 1, useCORS: true, backgroundColor: '#ffffff', width: GW, height: GH, scrollX: 0, scrollY: 0 })
+            .finally(() => {
+                greeting.style.transform = prevTransform;
+                greeting.style.boxShadow = prevShadow;
+                if (!guideWasHidden) guide.classList.remove('hidden');
+            });
+    }
+
+    function fileName() {
+        return ($('in-wish').value.trim().replace(/[^\w]+/g, '_') || 'Greeting') + '.png';
+    }
+
+    function downloadPng() {
+        capture().then(canvas => {
+            const link = document.createElement('a');
+            link.download = fileName();
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(err => { console.error(err); alert('Could not create the image. Open the page from the website instead of as a local file.'); });
+    }
+
+    function sharePng() {
+        capture().then(canvas => canvas.toBlob(blob => {
+            const file = new File([blob], fileName(), { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ files: [file] }).catch(() => {});
+            } else {
+                downloadPng();
+            }
+        }, 'image/png')).catch(err => { console.error(err); alert('Could not create the image. Open the page from the website instead of as a local file.'); });
+    }
+
+    // ---- Init
+    window.addEventListener('DOMContentLoaded', () => {
+        if (location.protocol === 'file:') $('file-warning').classList.remove('hidden');
+
+        buildPickers();
+        readUpload('up-bg', url => setBackground(url, '', false));
+        readUpload('up-fg', url => setForeground(url, ''));
+
+        // today's date as the default
+        const today = new Date();
+        $('in-date').value = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        $('in-datepick').value = today.toISOString().slice(0, 10);
+        $('in-datepick').addEventListener('change', e => {
+            if (!e.target.value) return;
+            const d = new Date(e.target.value + 'T12:00:00');
+            $('in-date').value = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            render();
+        });
+
+        document.querySelectorAll('#text-form input, #text-form textarea, #contact-form input, #in-accent, #in-theme, #in-safe')
+            .forEach(el => el.addEventListener('input', render));
+        $('btn-download').onclick = downloadPng;
+        $('btn-share').onclick = sharePng;
+        window.addEventListener('resize', fit);
+
+        applyPreset(new URLSearchParams(location.search).get('f') || 'diwali');
+        fit();
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { render(); fit(); });
+    });
+</script>
+</body>
+</html>
